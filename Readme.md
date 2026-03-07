@@ -1,7 +1,7 @@
 # College Administration Management System
 
 **Version:** 1.0  
-**Developed By:** Karan Minj, Kulwant, Bhavishya, Aryan Kumar, and Arpit Kasana
+**Developed By:** Karan Minj,Aryan Kumar, Kulwant, Bhavishya and Arpit Kasana
 
 A centralized digital platform designed to automate academic and administrative campus operations. This system streamlines processes such as attendance tracking, secure online fee payments, video content streaming, and reach analytics, all tailored through a Role-Based Access Control (RBAC) model.
 
