@@ -3,13 +3,16 @@
 **Version:** 1.0  
 **Developed By:** Karan Minj, Aryan Kumar, Kulwant, Bhavishya and Arpit Kasana
 
+
+
+
 A centralized digital platform designed to automate academic and administrative campus operations. This system streamlines processes such as attendance tracking, secure online fee payments, video content streaming, and reach analytics, all tailored through a Role-Based Access Control (RBAC) model.
 
 ## 🚀 Tech Stack
 This project is built using a three-tier client-server architecture based on the **MERN Stack**:
-* **Frontend (Presentation Layer):** React.js, HTML, JS (Web and Mobile browsers)
-* **Backend (Business Logic Layer):** Node.js and Express.js
-* **Database (Data Layer):** MongoDB (NoSQL) using Mongoose ODM
+* **Frontend (Presentation Layer):** React.js, HTML, JS (Web and Mobile browsers)   -- Will be Designed by Arpit Kasana & Karan Minj
+* **Backend (Business Logic Layer):** Node.js and Express.js -- Will be Designed by Aryan Kumar & Bhavishya
+* **Database (Data Layer):** MongoDB (NoSQL) using Mongoose ODM -- Will be designed by Kulwant
 
 ## ✨ Key Features
 * **Role-Based Dashboards:** Dedicated interfaces and privileges for `Admin`, `Teacher`, and `Student` roles.
