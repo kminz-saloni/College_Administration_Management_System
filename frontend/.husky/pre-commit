@@ -1,0 +1,20 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+echo "🚀 Running pre-commit checks..."
+
+# Run lint
+npm run lint:fix
+
+# Run prettier
+npm run format
+
+# Run tests
+npm run test -- --run
+
+if [ $? -ne 0 ]; then
+  echo "❌ Pre-commit checks failed!"
+  exit 1
+fi
+
+echo "✅ Pre-commit checks passed!"
