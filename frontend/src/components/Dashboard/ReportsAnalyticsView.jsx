@@ -1,6 +1,6 @@
 import React from 'react'
 import { useSelector } from 'react-redux'
-import { ChartBarIcon, TrendingUpIcon, UsersIcon, BookOpenIcon } from '@heroicons/react/24/outline'
+import { ChartBarIcon, ArrowTrendingUpIcon, UsersIcon, BookOpenIcon } from '@heroicons/react/24/outline'
 
 const ReportsAnalyticsView = () => {
   const { reports } = useSelector((state) => state.dashboard)
@@ -17,7 +17,7 @@ const ReportsAnalyticsView = () => {
     {
       title: 'Attendance Rate',
       value: `${analytics.attendanceRate}%`,
-      icon: TrendingUpIcon,
+      icon: ArrowTrendingUpIcon,
       color: 'text-green-600',
       bgColor: 'bg-green-100'
     },

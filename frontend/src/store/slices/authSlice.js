@@ -87,4 +87,7 @@ export const {
   initializeAuth,
 } = authSlice.actions
 
+// Alias for logout (clearAuth)
+export const logout = authSlice.actions.clearAuth
+
 export default authSlice.reducer

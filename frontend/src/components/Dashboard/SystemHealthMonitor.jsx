@@ -1,6 +1,6 @@
 import React from 'react'
 import { useSelector } from 'react-redux'
-import { ServerIcon, CpuChipIcon, WifiIcon, DatabaseIcon } from '@heroicons/react/24/outline'
+import { ServerIcon, CpuChipIcon, WifiIcon, ServerStackIcon } from '@heroicons/react/24/outline'
 
 const SystemHealthMonitor = () => {
   const { stats } = useSelector((state) => state.dashboard)
@@ -31,7 +31,7 @@ const SystemHealthMonitor = () => {
     {
       name: 'Database',
       status: 'Healthy',
-      icon: DatabaseIcon,
+      icon: ServerStackIcon,
       color: 'text-green-600',
       details: 'All connections active'
     }
