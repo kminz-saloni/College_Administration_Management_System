@@ -48,7 +48,7 @@ The system utilizes a flexible NoSQL MongoDB schema with the following core coll
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/ghostmonk17/SMART-CAMPUS.git
+   git clone https://github.com/kminz-saloni/College_Administration_Management_System
    ```
 2. **Install Backend Dependencies:**
    ```bash
