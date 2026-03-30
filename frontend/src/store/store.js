@@ -6,6 +6,7 @@ import uiReducer from './slices/uiSlice'
 import dashboardReducer from './slices/dashboardSlice'
 import videoReducer from './slices/videoSlice'
 import eventReducer from './slices/eventSlice'
+import eventAnalyticsReducer from './slices/eventAnalyticsSlice'
 import analyticsReducer from './slices/analyticsSlice'
 import paymentReducer from './slices/paymentSlice'
 
@@ -18,6 +19,7 @@ export const store = configureStore({
     dashboard: dashboardReducer,
     video: videoReducer,
     event: eventReducer,
+    eventAnalytics: eventAnalyticsReducer,
     analytics: analyticsReducer,
     payment: paymentReducer,
   },

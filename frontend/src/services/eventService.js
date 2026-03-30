@@ -157,6 +157,116 @@ const eventService = {
       throw error.response?.data || { message: 'Failed to search events' }
     }
   },
+
+  // ===== PHASE 5: ANALYTICS & ADVANCED FEATURES =====
+
+  /**
+   * Fetch event analytics data
+   * @param {Object} params - Query parameters (dateRange, eventType, etc.)
+   */
+  fetchEventAnalytics: async (params = {}) => {
+    try {
+      const response = await api.get('/api/events/analytics', { params })
+      return response.data
+    } catch (error) {
+      return { data: [] }
+    }
+  },
+
+  /**
+   * Fetch attendance statistics for a specific event
+   * @param {string} eventId - Event ID
+   */
+  fetchEventAttendanceStats: async (eventId) => {
+    try {
+      const response = await api.get(`/api/events/${eventId}/attendance-stats`)
+      return response.data
+    } catch (error) {
+      return { data: { attendeeCount: 0, checkedInCount: 0, attendanceRate: 0 } }
+    }
+  },
+
+  /**
+   * Check in an attendee for an event
+   * @param {string} eventId - Event ID
+   * @param {string} userId - User ID
+   */
+  checkInAttendee: async (eventId, userId) => {
+    try {
+      const response = await api.post(`/api/events/${eventId}/check-in`, { userId })
+      return response.data
+    } catch (error) {
+      throw error.response?.data || { message: 'Failed to check in attendee' }
+    }
+  },
+
+  /**
+   * Reschedule an event
+   * @param {string} eventId - Event ID
+   * @param {Object} eventData - New date, time, and reason
+   */
+  rescheduleEvent: async (eventId, eventData) => {
+    try {
+      const response = await api.put(`/api/events/${eventId}/reschedule`, eventData)
+      return response.data
+    } catch (error) {
+      throw error.response?.data || { message: 'Failed to reschedule event' }
+    }
+  },
+
+  /**
+   * Cancel an event
+   * @param {string} eventId - Event ID
+   * @param {string} reason - Cancellation reason
+   */
+  cancelEvent: async (eventId, reason = '') => {
+    try {
+      const response = await api.post(`/api/events/${eventId}/cancel`, { reason })
+      return response.data
+    } catch (error) {
+      throw error.response?.data || { message: 'Failed to cancel event' }
+    }
+  },
+
+  /**
+   * Send event invitations to multiple users
+   * @param {string} eventId - Event ID
+   * @param {Array<string>} userIds - Array of user IDs
+   */
+  sendEventInvitations: async (eventId, userIds) => {
+    try {
+      const response = await api.post(`/api/events/${eventId}/invite`, { userIds })
+      return response.data
+    } catch (error) {
+      throw error.response?.data || { message: 'Failed to send invitations' }
+    }
+  },
+
+  /**
+   * Fetch calendar data for events
+   * @param {Object} params - Query parameters (month, year, etc.)
+   */
+  fetchEventCalendarData: async (params = {}) => {
+    try {
+      const response = await api.get('/api/events/calendar', { params })
+      return response.data
+    } catch (error) {
+      return { data: [] }
+    }
+  },
+
+  /**
+   * Fetch popular events
+   * @param {number} limit - Number of events to fetch
+   */
+  fetchPopularEvents: async (limit = 5) => {
+    try {
+      const response = await api.get('/api/events/popular', { params: { limit } })
+      return response.data
+    } catch (error) {
+      return { data: [] }
+    }
+  },
 }
 
 export default eventService
