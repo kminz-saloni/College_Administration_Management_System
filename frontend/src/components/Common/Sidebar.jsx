@@ -13,7 +13,7 @@
 import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
-import { toggleSidebar } from '@/store/slices/uiSlice'
+import { toggleSidebar, toggleSidebarCollapsed } from '@/store/slices/uiSlice'
 import {
   LayoutDashboard,
   Users,
@@ -36,9 +36,8 @@ const Sidebar = () => {
   const location = useLocation()
   const dispatch = useDispatch()
   const { user } = useSelector((state) => state.auth)
-  const { sidebarOpen } = useSelector((state) => state.ui)
+  const { sidebarOpen, sidebarCollapsed } = useSelector((state) => state.ui)
   const [expandedMenu, setExpandedMenu] = useState(null)
-  const [collapsed, setCollapsed] = useState(false)
 
   const getMenuSections = () => {
     const sections = {
@@ -174,16 +173,16 @@ const Sidebar = () => {
       {/* Sidebar */}
       <aside
         className={`fixed left-0 top-0 h-screen bg-surface-1 border-r border-border-app overflow-y-auto overflow-x-hidden transition-all duration-300 ease-in-out z-50 flex flex-col
-          ${collapsed ? 'w-[68px]' : 'w-64'}
+          ${sidebarCollapsed ? 'w-[68px]' : 'w-64'}
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         `}
       >
         {/* Logo */}
-        <div className={`flex items-center h-16 px-4 border-b border-border-app/50 flex-shrink-0 ${collapsed ? 'justify-center' : 'gap-3'}`}>
+        <div className={`flex items-center h-16 px-4 border-b border-border-app/50 flex-shrink-0 ${sidebarCollapsed ? 'justify-center' : 'gap-3'}`}>
           <div className="w-9 h-9 bg-gradient-premium rounded-btn flex items-center justify-center flex-shrink-0">
             <GraduationCap className="w-5 h-5 text-white" />
           </div>
-          {!collapsed && (
+          {!sidebarCollapsed && (
             <div className="animate-fade-in">
               <h1 className="text-base font-bold text-text-primary font-heading tracking-tight">CampusFlow</h1>
               <p className="text-[10px] text-text-muted font-medium uppercase tracking-widest">Admin Suite</p>
@@ -192,15 +191,15 @@ const Sidebar = () => {
         </div>
 
         {/* Navigation */}
-        <nav className={`flex-1 py-4 space-y-1 ${collapsed ? 'px-2' : 'px-3'}`}>
+        <nav className={`flex-1 py-4 space-y-1 ${sidebarCollapsed ? 'px-2' : 'px-3'}`}>
           {menuSections.map((section, sIdx) => (
             <div key={sIdx} className={sIdx > 0 ? 'mt-6' : ''}>
-              {!collapsed && (
+              {!sidebarCollapsed && (
                 <p className="px-3 mb-2 text-[10px] font-semibold text-text-muted/60 uppercase tracking-widest">
                   {section.title}
                 </p>
               )}
-              {collapsed && sIdx > 0 && <div className="divider !my-3" />}
+              {sidebarCollapsed && sIdx > 0 && <div className="divider !my-3" />}
 
               <div className="space-y-0.5">
                 {section.items.map((item) => (
@@ -211,18 +210,18 @@ const Sidebar = () => {
                           onClick={() =>
                             setExpandedMenu(expandedMenu === item.href ? null : item.href)
                           }
-                          className={`w-full flex items-center ${collapsed ? 'justify-center' : 'justify-between'} px-3 py-2.5 rounded-btn text-sm font-medium transition-all duration-200 group ${
+                          className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center' : 'justify-between'} px-3 py-2.5 rounded-btn text-sm font-medium transition-all duration-200 group ${
                             isLinkActive(item.href)
                               ? 'bg-primary/10 text-primary-400'
                               : 'text-text-muted hover:bg-surface-2 hover:text-text-primary'
                           }`}
-                          title={collapsed ? item.label : undefined}
+                          title={sidebarCollapsed ? item.label : undefined}
                         >
                           <span className="flex items-center gap-3">
                             <item.icon className={`w-[18px] h-[18px] flex-shrink-0 ${isLinkActive(item.href) ? 'text-primary' : 'text-text-muted group-hover:text-text-secondary'}`} />
-                            {!collapsed && item.label}
+                            {!sidebarCollapsed && item.label}
                           </span>
-                          {!collapsed && (
+                          {!sidebarCollapsed && (
                             <ChevronDown
                               className={`w-4 h-4 transition-transform duration-200 ${
                                 expandedMenu === item.href ? 'rotate-180' : ''
@@ -232,7 +231,7 @@ const Sidebar = () => {
                         </button>
 
                         {/* Submenu Items */}
-                        {!collapsed && expandedMenu === item.href && (
+                        {!sidebarCollapsed && expandedMenu === item.href && (
                           <div className="mt-1 ml-5 space-y-0.5 border-l border-border-app/50 pl-3 animate-slide-up">
                             {item.submenu.map((subitem) => (
                               <Link
@@ -259,14 +258,14 @@ const Sidebar = () => {
                           isLinkActive(item.href)
                             ? 'bg-primary/10 text-primary-400'
                             : 'text-text-muted hover:bg-surface-2 hover:text-text-primary'
-                        } ${collapsed ? 'justify-center' : ''}`}
-                        title={collapsed ? item.label : undefined}
+                        } ${sidebarCollapsed ? 'justify-center' : ''}`}
+                        title={sidebarCollapsed ? item.label : undefined}
                       >
                         {isLinkActive(item.href) && (
                           <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-primary rounded-r-full" />
                         )}
                         <item.icon className={`w-[18px] h-[18px] flex-shrink-0 ${isLinkActive(item.href) ? 'text-primary' : 'text-text-muted group-hover:text-text-secondary'}`} />
-                        {!collapsed && item.label}
+                        {!sidebarCollapsed && item.label}
                       </Link>
                     )}
                   </div>
@@ -277,8 +276,8 @@ const Sidebar = () => {
         </nav>
 
         {/* Sidebar Footer */}
-        <div className={`flex-shrink-0 border-t border-border-app/50 p-3 ${collapsed ? 'text-center' : ''}`}>
-          {!collapsed && (
+        <div className={`flex-shrink-0 border-t border-border-app/50 p-3 ${sidebarCollapsed ? 'text-center' : ''}`}>
+          {!sidebarCollapsed && (
             <div className="flex items-center gap-3 px-3 py-2 rounded-btn bg-surface-2/50 mb-3">
               <Sparkles className="w-4 h-4 text-accent flex-shrink-0" />
               <div className="min-w-0">
@@ -288,11 +287,11 @@ const Sidebar = () => {
             </div>
           )}
           <button
-            onClick={() => setCollapsed(!collapsed)}
+            onClick={() => dispatch(toggleSidebarCollapsed())}
             className="hidden lg:flex items-center justify-center w-full p-2 rounded-btn text-text-muted hover:bg-surface-2 hover:text-text-primary transition-colors"
-            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
-            <ChevronLeft className={`w-4 h-4 transition-transform duration-300 ${collapsed ? 'rotate-180' : ''}`} />
+            <ChevronLeft className={`w-4 h-4 transition-transform duration-300 ${sidebarCollapsed ? 'rotate-180' : ''}`} />
           </button>
         </div>
       </aside>

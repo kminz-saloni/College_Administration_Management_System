@@ -35,10 +35,10 @@ const ClassesManagementInterface = () => {
   const [formData, setFormData] = useState({
     name: '',
     subject: '',
-    class_code: '',
-    department: '',
+    description: '',
     semester: '1',
-    teacher: ''
+    capacity: 50,
+    academicYear: new Date().getFullYear().toString()
   })
 
   const filteredClasses = safeClasses.filter(cls =>
@@ -53,20 +53,20 @@ const ClassesManagementInterface = () => {
       setFormData({
         name: cls.name || '',
         subject: cls.subject || '',
-        class_code: cls.class_code || '',
-        department: cls.department || '',
-        semester: cls.semester || '1',
-        teacher: cls.teacher?._id || cls.teacher || ''
+        description: cls.description || '',
+        semester: cls.semester?.toString() || '1',
+        capacity: cls.capacity || 50,
+        academicYear: cls.academicYear || new Date().getFullYear().toString()
       })
     } else {
       setEditingClass(null)
       setFormData({
         name: '',
         subject: '',
-        class_code: '',
-        department: '',
+        description: '',
         semester: '1',
-        teacher: user?.id || user?._id || ''
+        capacity: 50,
+        academicYear: new Date().getFullYear().toString()
       })
     }
     setIsModalOpen(true)
@@ -135,7 +135,7 @@ const ClassesManagementInterface = () => {
             <div className="flex justify-between items-start mb-3">
               <div className="min-w-0">
                 <span className="badge-primary mb-1.5 uppercase tracking-widest text-[10px]">
-                  {cls.class_code}
+                  {cls.academicYear}
                 </span>
                 <h3 className="text-base font-bold text-text-primary truncate font-heading">{cls.name}</h3>
                 <p className="text-xs text-text-muted truncate mt-0.5">{cls.subject}</p>
@@ -159,7 +159,7 @@ const ClassesManagementInterface = () => {
             <div className="grid grid-cols-2 gap-3 mt-4 pt-4 border-t border-border-app/30">
               <div className="flex items-center gap-2 text-text-muted">
                 <Layers className="w-3.5 h-3.5 text-accent" />
-                <span className="text-[11px] font-medium truncate">{cls.department}</span>
+                <span className="text-[11px] font-medium truncate">Cap: {cls.capacity || 50}</span>
               </div>
               <div className="flex items-center gap-2 text-text-muted">
                 <Hash className="w-3.5 h-3.5 text-info" />
@@ -187,7 +187,7 @@ const ClassesManagementInterface = () => {
       {isModalOpen && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
           <div className="overlay" onClick={() => setIsModalOpen(false)} />
-          <div className="card w-full max-w-md relative z-10 animate-scale-in">
+          <div className="card w-full max-w-md relative z-[50] animate-scale-in">
             <div className="flex justify-between items-start mb-6">
               <div>
                 <h3 className="text-xl font-bold text-text-primary font-heading">
@@ -227,14 +227,15 @@ const ClassesManagementInterface = () => {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="input-label">Class Code</label>
+                  <label className="input-label">Capacity</label>
                   <input
-                    required
-                    type="text"
-                    value={formData.class_code}
-                    onChange={(e) => setFormData({...formData, class_code: e.target.value})}
+                    type="number"
+                    value={formData.capacity}
+                    onChange={(e) => setFormData({...formData, capacity: parseInt(e.target.value) || 50})}
                     className="input"
-                    placeholder="e.g. CS101"
+                    placeholder="e.g. 50"
+                    min="10"
+                    max="500"
                   />
                 </div>
                 <div>
@@ -248,15 +249,27 @@ const ClassesManagementInterface = () => {
                   </select>
                 </div>
               </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="input-label">Academic Year</label>
+                  <input
+                    type="text"
+                    value={formData.academicYear}
+                    onChange={(e) => setFormData({...formData, academicYear: e.target.value})}
+                    className="input"
+                    placeholder="e.g. 2024"
+                  />
+                </div>
+                <div></div>
+              </div>
               <div>
-                <label className="input-label">Department</label>
-                <input
-                  required
-                  type="text"
-                  value={formData.department}
-                  onChange={(e) => setFormData({...formData, department: e.target.value})}
+                <label className="input-label">Description</label>
+                <textarea
+                  value={formData.description}
+                  onChange={(e) => setFormData({...formData, description: e.target.value})}
                   className="input"
-                  placeholder="e.g. Engineering"
+                  placeholder="Optional class description"
+                  rows="3"
                 />
               </div>
               

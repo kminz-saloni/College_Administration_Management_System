@@ -290,9 +290,139 @@ const getUserById = async (req, res, next) => {
   }
 };
 
+// ============================================
+// ADMIN USER MANAGEMENT ENDPOINTS
+// ============================================
+
+/**
+ * Update user by ID (Admin only)
+ * PUT /users/admin/:id
+ * Admin can update any user's profile
+ * @param {Object} req - Express request with userId in params
+ * @param {Object} res - Express response
+ */
+const updateUserByAdmin = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { name, email, phone, role, department, designation, isActive } = req.body;
+
+    logger.info('Admin updating user', { adminId: req.user._id, targetUserId: id });
+
+    const user = await User.findById(id);
+
+    if (!user) {
+      logger.warn('User not found for admin update', { userId: id });
+      return sendError(
+        res,
+        'User not found',
+        constants.ERROR_CODES.NOT_FOUND,
+        null,
+        constants.HTTP_STATUS.NOT_FOUND
+      );
+    }
+
+    // Update fields
+    if (name) user.name = name;
+    if (email) {
+      // Check if email is already in use
+      const existingUser = await User.findOne({ email: email.toLowerCase(), _id: { $ne: id } });
+      if (existingUser) {
+        return sendError(
+          res,
+          'Email already in use',
+          constants.ERROR_CODES.EMAIL_ALREADY_EXISTS,
+          null,
+          constants.HTTP_STATUS.CONFLICT
+        );
+      }
+      user.email = email.toLowerCase();
+    }
+    if (phone) user.phone = phone;
+    if (role && Object.values(constants.ROLES).includes(role)) user.role = role;
+    if (department) user.department = department;
+    if (designation) user.designation = designation;
+    if (typeof isActive === 'boolean') user.isActive = isActive;
+
+    user.updatedAt = new Date();
+    await user.save();
+
+    logger.info('User updated by admin successfully', { userId: id });
+
+    return sendSuccess(res, 'User updated successfully', {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      phone: user.phone,
+      role: user.role,
+      department: user.department,
+      designation: user.designation,
+      isActive: user.isActive,
+      updatedAt: user.updatedAt,
+    });
+  } catch (error) {
+    logger.error('Error updating user by admin', { error: error.message });
+    next(error);
+  }
+};
+
+/**
+ * Delete user by ID (Admin only - soft delete)
+ * DELETE /users/admin/:id
+ * Admin can delete any user (soft delete)
+ * @param {Object} req - Express request with userId in params
+ * @param {Object} res - Express response
+ */
+const deleteUserByAdmin = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    logger.info('Admin deleting user', { adminId: req.user._id, targetUserId: id });
+
+    if (id === req.user._id.toString()) {
+      return sendError(
+        res,
+        'Cannot delete your own account',
+        constants.ERROR_CODES.FORBIDDEN,
+        null,
+        constants.HTTP_STATUS.FORBIDDEN
+      );
+    }
+
+    const user = await User.findById(id);
+
+    if (!user) {
+      logger.warn('User not found for deletion', { userId: id });
+      return sendError(
+        res,
+        'User not found',
+        constants.ERROR_CODES.NOT_FOUND,
+        null,
+        constants.HTTP_STATUS.NOT_FOUND
+      );
+    }
+
+    // Soft delete
+    user.isActive = false;
+    user.deletedAt = new Date();
+    await user.save();
+
+    logger.info('User deleted by admin successfully', { userId: id });
+
+    return sendSuccess(res, 'User deleted successfully', {
+      id: user._id,
+      message: 'User has been deactivated',
+    });
+  } catch (error) {
+    logger.error('Error deleting user by admin', { error: error.message });
+    next(error);
+  }
+};
+
 module.exports = {
   getProfile,
   updateProfile,
   listUsers,
   getUserById,
+  updateUserByAdmin,
+  deleteUserByAdmin,
 };

@@ -8,18 +8,23 @@
  * - Smooth responsive behavior
  */
 
+import { useSelector } from 'react-redux'
 import { Outlet } from 'react-router-dom'
 import Header from '@/components/Common/Header'
 import Sidebar from '@/components/Common/Sidebar'
 
 const MainLayout = () => {
+  const { sidebarCollapsed } = useSelector((state) => state.ui)
+
   return (
     <div className="min-h-screen bg-app">
       {/* Sidebar */}
       <Sidebar />
 
-      {/* Main Content Wrapper — offset by sidebar width */}
-      <div className="lg:ml-64 flex flex-col min-h-screen transition-all duration-300">
+      {/* Main Content Wrapper — offset by sidebar width (responsive to collapse) */}
+      <div className={`flex flex-col min-h-screen transition-all duration-300 ${
+        sidebarCollapsed ? 'lg:ml-[68px]' : 'lg:ml-64'
+      }`}>
         {/* Header */}
         <Header />
 

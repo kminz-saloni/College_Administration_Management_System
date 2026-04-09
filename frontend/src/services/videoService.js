@@ -12,7 +12,7 @@ const videoService = {
    */
   fetchVideos: async (params = {}) => {
     try {
-      const response = await api.get('/api/videos', { params })
+      const response = await api.get('/videos', { params })
       return response.data
     } catch (error) {
       throw error.response?.data || { message: 'Failed to fetch videos' }
@@ -25,7 +25,7 @@ const videoService = {
    */
   fetchVideoById: async (videoId) => {
     try {
-      const response = await api.get(`/api/videos/${videoId}`)
+      const response = await api.get(`/videos/${videoId}`)
       return response.data
     } catch (error) {
       throw error.response?.data || { message: 'Failed to fetch video' }
@@ -39,7 +39,7 @@ const videoService = {
    */
   uploadVideo: async (formData, onProgress = null) => {
     try {
-      const response = await api.post('/api/videos/upload', formData, {
+      const response = await api.post('/videos/upload', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -65,7 +65,7 @@ const videoService = {
    */
   updateVideo: async (videoId, data) => {
     try {
-      const response = await api.put(`/api/videos/${videoId}`, data)
+      const response = await api.put(`/videos/${videoId}`, data)
       return response.data
     } catch (error) {
       throw error.response?.data || { message: 'Failed to update video' }
@@ -78,7 +78,7 @@ const videoService = {
    */
   deleteVideo: async (videoId) => {
     try {
-      const response = await api.delete(`/api/videos/${videoId}`)
+      const response = await api.delete(`/videos/${videoId}`)
       return response.data
     } catch (error) {
       throw error.response?.data || { message: 'Failed to delete video' }
@@ -91,7 +91,7 @@ const videoService = {
    */
   getVideoStream: async (videoId) => {
     try {
-      const response = await api.get(`/api/videos/${videoId}/stream`)
+      const response = await api.get(`/videos/${videoId}/stream`)
       return response.data
     } catch (error) {
       throw error.response?.data || { message: 'Failed to get video stream' }
@@ -105,7 +105,7 @@ const videoService = {
    */
   updateWatchProgress: async (videoId, watchedDuration) => {
     try {
-      const response = await api.post(`/api/videos/${videoId}/progress`, {
+      const response = await api.post(`/videos/${videoId}/progress`, {
         watchedDuration,
       })
       return response.data
@@ -120,7 +120,7 @@ const videoService = {
    */
   fetchVideosBySubject: async (subject) => {
     try {
-      const response = await api.get('/api/videos', { params: { subject } })
+      const response = await api.get('/videos', { params: { subject } })
       return response.data
     } catch (error) {
       throw error.response?.data || { message: 'Failed to fetch videos by subject' }
@@ -133,7 +133,7 @@ const videoService = {
    */
   fetchVideosByClass: async (classId) => {
     try {
-      const response = await api.get('/api/videos', { params: { class: classId } })
+      const response = await api.get('/videos', { params: { class: classId } })
       return response.data
     } catch (error) {
       throw error.response?.data || { message: 'Failed to fetch videos by class' }

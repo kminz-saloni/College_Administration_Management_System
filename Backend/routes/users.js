@@ -68,4 +68,26 @@ router.get('/dashboard/users', roleGuard(['admin']), usersController.listUsers);
  */
 router.get('/:id', usersController.getUserById);
 
+// ============================================
+// ADMIN USER MANAGEMENT ROUTES
+// ============================================
+
+/**
+ * PUT /users/admin/:id
+ * Update user by ID (Admin only)
+ * @param {string} id - User ID
+ * @returns {Object} - {success, data: {updated user}}
+ * @access Admin only
+ */
+router.put('/admin/:id', roleGuard(['admin']), usersController.updateUserByAdmin);
+
+/**
+ * DELETE /users/admin/:id
+ * Delete user by ID (Admin only - soft delete)
+ * @param {string} id - User ID
+ * @returns {Object} - {success, data: {message}}
+ * @access Admin only
+ */
+router.delete('/admin/:id', roleGuard(['admin']), usersController.deleteUserByAdmin);
+
 module.exports = router;

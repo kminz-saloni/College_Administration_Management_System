@@ -261,7 +261,7 @@
 
   /* ── Overlay ── */
   .overlay {
-    @apply fixed inset-0 bg-black/60 backdrop-blur-sm z-40;
+    @apply fixed inset-0 bg-black/60 backdrop-blur-sm z-[45];
   }
 
   /* ── Divider ── */

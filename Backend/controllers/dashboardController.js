@@ -400,6 +400,7 @@ const getDashboardUsers = async (req, res, next) => {
 
     return sendSuccess(res, {
       users: users.map((u) => ({
+        _id: u._id,
         id: u._id,
         name: u.name,
         email: u.email,
@@ -408,6 +409,7 @@ const getDashboardUsers = async (req, res, next) => {
         designation: u.designation,
         lastLogin: u.lastLogin,
         joinedAt: u.createdAt,
+        isActive: true,
       })),
       total,
       page: Number(page),

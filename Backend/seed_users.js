@@ -6,6 +6,7 @@ require('dotenv').config();
 
 const mongoose = require('mongoose');
 const User = require('./models/User');
+const AuthService = require('./services/authService');
 
 async function main() {
   console.log('Connecting to MongoDB...');
@@ -36,17 +37,18 @@ async function main() {
     const existing = await User.findOne({ email: u.email });
     if (existing) {
       console.log(`[EXISTS] ${u.role}: ${u.email}`);
-      existing.password = u.password;
+      existing.password = await AuthService.hashPassword(u.password);
       existing.loginAttempts = 0;
       existing.lockUntil = null;
       existing.isEmailVerified = true;
       await existing.save();
       console.log(`         Password reset & unlocked.`);
     } else {
+      const hashed = await AuthService.hashPassword(u.password);
       await User.create({
         name: u.name,
         email: u.email,
-        password: u.password,
+        password: hashed,
         role: u.role,
         isEmailVerified: true,
       });

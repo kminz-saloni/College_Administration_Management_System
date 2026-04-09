@@ -43,8 +43,13 @@ const authMiddleware = (req, res, next) => {
     // Verify token
     const decoded = AuthService.verifyAccessToken(token);
 
-    // Attach user info to request
-    req.user = decoded;
+    // Attach user info to request (normalize userId to _id for backwards compatibility)
+    req.user = {
+      _id: decoded.userId,
+      userId: decoded.userId,
+      email: decoded.email,
+      role: decoded.role,
+    };
 
     logger.debug(`User authenticated: ${decoded.userId} (${decoded.role})`);
 

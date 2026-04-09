@@ -2,6 +2,7 @@ import { createSlice } from '@reduxjs/toolkit'
 
 const initialState = {
   sidebarOpen: true,
+  sidebarCollapsed: false,
   modals: {
     // Modal name: { isOpen: boolean, data: any }
   },
@@ -23,6 +24,16 @@ const uiSlice = createSlice({
     // Set sidebar state
     setSidebarOpen: (state, action) => {
       state.sidebarOpen = action.payload
+    },
+
+    // Toggle sidebar collapsed state
+    toggleSidebarCollapsed: (state) => {
+      state.sidebarCollapsed = !state.sidebarCollapsed
+    },
+
+    // Set sidebar collapsed state
+    setSidebarCollapsed: (state, action) => {
+      state.sidebarCollapsed = action.payload
     },
 
     // Open modal
@@ -83,6 +94,8 @@ const uiSlice = createSlice({
 export const {
   toggleSidebar,
   setSidebarOpen,
+  toggleSidebarCollapsed,
+  setSidebarCollapsed,
   openModal,
   closeModal,
   toggleModal,

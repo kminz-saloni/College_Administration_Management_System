@@ -246,6 +246,39 @@ const validateEventRSVP = (data) => {
 };
 
 // ============================================
+// CLASS VALIDATORS
+// ============================================
+
+const validateClass = (data) => {
+  const schema = Joi.object({
+    name: Joi.string().trim().min(2).max(100).required(),
+    subject: Joi.string().trim().min(2).max(100).required(),
+    description: Joi.string().trim().max(500).optional().allow(null, ''),
+    schedule: Joi.object().optional(),
+    academicYear: Joi.string().trim().optional().allow(null, ''),
+    semester: Joi.number().optional().allow(null, ''),
+    capacity: Joi.number().optional().default(50),
+    teacherId: Joi.string().optional(), // For admin to assign
+  });
+
+  return schema.validate(data, { abortEarly: false });
+};
+
+const validateClassUpdate = (data) => {
+  const schema = Joi.object({
+    name: Joi.string().trim().min(2).max(100).optional(),
+    subject: Joi.string().trim().min(2).max(100).optional(),
+    description: Joi.string().trim().max(500).optional().allow(null, ''),
+    schedule: Joi.object().optional(),
+    academicYear: Joi.string().trim().optional().allow(null, ''),
+    semester: Joi.number().optional().allow(null, ''),
+    capacity: Joi.number().optional(),
+  });
+
+  return schema.validate(data, { abortEarly: false });
+};
+
+// ============================================
 // UTILITY VALIDATION FUNCTIONS
 // ============================================
 
@@ -471,6 +504,8 @@ module.exports = {
   validateEvent,
   validateEventUpdate,
   validateEventRSVP,
+  validateClass,
+  validateClassUpdate,
   validateVideoUpload,
   validateVideoUpdate,
 

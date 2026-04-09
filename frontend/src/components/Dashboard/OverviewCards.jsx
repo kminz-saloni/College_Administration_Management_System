@@ -5,11 +5,16 @@
 
 import { Users, BookOpen, Clock, TrendingUp, TrendingDown, Minus, GraduationCap } from 'lucide-react'
 
-const OverviewCards = ({ stats }) => {
+const OverviewCards = ({ stats = {} }) => {
+  // Map backend response properly
+  const totalStudents = stats?.usersByRole?.student || 0
+  const totalTeachers = stats?.usersByRole?.teacher || 0
+  const totalClasses = stats?.totalClasses || 0
+  
   const cards = [
     {
       label: 'Total Students',
-      value: stats?.totalStudents || 0,
+      value: totalStudents,
       icon: Users,
       color: 'text-primary',
       bg: 'bg-primary/10',
@@ -17,7 +22,7 @@ const OverviewCards = ({ stats }) => {
     },
     {
       label: 'Total Teachers',
-      value: stats?.totalTeachers || 0,
+      value: totalTeachers,
       icon: Users,
       color: 'text-accent',
       bg: 'bg-accent/10',
@@ -25,7 +30,7 @@ const OverviewCards = ({ stats }) => {
     },
     {
       label: 'Active Classes',
-      value: stats?.totalClasses || 0,
+      value: totalClasses,
       icon: BookOpen,
       color: 'text-info',
       bg: 'bg-info/10',
