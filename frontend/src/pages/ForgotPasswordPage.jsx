@@ -28,7 +28,7 @@ const ForgotPasswordPage = () => {
 
     setIsLoading(true)
     try {
-      await authService.forgotPassword({ email })
+      await authService.forgotPassword(email)
       setSubmitted(true)
       toast.success('Reset link sent to your email!')
     } catch (err) {

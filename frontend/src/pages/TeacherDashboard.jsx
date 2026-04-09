@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { fetchDashboardStats, fetchClasses } from '../store/slices/dashboardSlice'
+import { fetchTeacherDashboard } from '../store/slices/dashboardSlice'
 import ClassInformationCards from '../components/Dashboard/ClassInformationCards'
 import AttendanceSummary from '../components/Dashboard/AttendanceSummary'
 import QuickActions from '../components/Dashboard/QuickActions'
@@ -12,9 +12,8 @@ const TeacherDashboard = () => {
   const { loading, error } = useSelector((state) => state.dashboard)
 
   useEffect(() => {
-    // Fetch teacher-specific dashboard data
-    dispatch(fetchDashboardStats())
-    dispatch(fetchClasses())
+    // Fetch teacher-specific dashboard data using teacher endpoint
+    dispatch(fetchTeacherDashboard())
   }, [dispatch])
 
   if (loading) {

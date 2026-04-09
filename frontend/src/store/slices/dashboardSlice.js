@@ -1,6 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
-import axios from 'axios'
-import config from '@/config/environment'
+import api from '@/services/api'
 
 /**
  * Async thunks for dashboard data operations
@@ -11,10 +10,46 @@ export const fetchDashboardStats = createAsyncThunk(
   'dashboard/fetchStats',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await axios.get(`${config.api.baseURL}/dashboard/stats`)
+      const response = await api.get('/dashboard/stats')
       return response.data
     } catch (error) {
       return rejectWithValue(error.response?.data || { message: 'Failed to fetch dashboard stats' })
+    }
+  }
+)
+
+export const fetchAdminDashboard = createAsyncThunk(
+  'dashboard/fetchAdminDashboard',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await api.get('/dashboard/admin')
+      return response.data
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { message: 'Failed to fetch admin dashboard' })
+    }
+  }
+)
+
+export const fetchStudentDashboard = createAsyncThunk(
+  'dashboard/fetchStudentDashboard',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await api.get('/dashboard/student')
+      return response.data
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { message: 'Failed to fetch student dashboard' })
+    }
+  }
+)
+
+export const fetchTeacherDashboard = createAsyncThunk(
+  'dashboard/fetchTeacherDashboard',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await api.get('/dashboard/teacher')
+      return response.data
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { message: 'Failed to fetch teacher dashboard' })
     }
   }
 )
@@ -23,9 +58,7 @@ export const fetchUsers = createAsyncThunk(
   'dashboard/fetchUsers',
   async (params, { rejectWithValue }) => {
     try {
-      const response = await axios.get(`${config.api.baseURL}/dashboard/users`, {
-        params,
-      })
+      const response = await api.get('/dashboard/users', { params })
       return response.data
     } catch (error) {
       return rejectWithValue(error.response?.data || { message: 'Failed to fetch users' })
@@ -37,7 +70,7 @@ export const fetchClasses = createAsyncThunk(
   'dashboard/fetchClasses',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await axios.get(`${config.api.baseURL}/dashboard/classes`)
+      const response = await api.get('/dashboard/classes')
       return response.data
     } catch (error) {
       return rejectWithValue(error.response?.data || { message: 'Failed to fetch classes' })
@@ -49,9 +82,7 @@ export const fetchReports = createAsyncThunk(
   'dashboard/fetchReports',
   async (params, { rejectWithValue }) => {
     try {
-      const response = await axios.get(`${config.api.baseURL}/dashboard/reports`, {
-        params,
-      })
+      const response = await api.get('/dashboard/reports', { params })
       return response.data
     } catch (error) {
       return rejectWithValue(error.response?.data || { message: 'Failed to fetch reports' })
@@ -63,7 +94,7 @@ export const fetchNotifications = createAsyncThunk(
   'dashboard/fetchNotifications',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await axios.get(`${config.api.baseURL}/notifications`)
+      const response = await api.get('/notifications')
       return response.data
     } catch (error) {
       return rejectWithValue(error.response?.data || { message: 'Failed to fetch notifications' })
@@ -75,12 +106,58 @@ export const markNotificationAsRead = createAsyncThunk(
   'dashboard/markNotificationAsRead',
   async (notificationId, { rejectWithValue }) => {
     try {
-      const response = await axios.post(`${config.api.baseURL}/notifications/mark-read`, {
-        notificationId,
-      })
+      const response = await api.post('/notifications/mark-read', { notificationId })
       return response.data
     } catch (error) {
       return rejectWithValue(error.response?.data || { message: 'Failed to mark notification as read' })
+    }
+  }
+)
+
+export const addClass = createAsyncThunk(
+  'dashboard/addClass',
+  async (classData, { rejectWithValue }) => {
+    try {
+      const response = await api.post('/classes', classData)
+      return response.data
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { message: 'Failed to add class' })
+    }
+  }
+)
+
+export const updateClass = createAsyncThunk(
+  'dashboard/updateClass',
+  async ({ id, classData }, { rejectWithValue }) => {
+    try {
+      const response = await api.put(`/classes/${id}`, classData)
+      return response.data
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { message: 'Failed to update class' })
+    }
+  }
+)
+
+export const deleteClass = createAsyncThunk(
+  'dashboard/deleteClass',
+  async (id, { rejectWithValue }) => {
+    try {
+      const response = await api.delete(`/classes/${id}`)
+      return { id, ...response.data }
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { message: 'Failed to delete class' })
+    }
+  }
+)
+
+export const fetchClassById = createAsyncThunk(
+  'dashboard/fetchClassById',
+  async (id, { rejectWithValue }) => {
+    try {
+      const response = await api.get(`/classes/${id}`)
+      return response.data
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { message: 'Failed to fetch class details' })
     }
   }
 )
@@ -116,6 +193,7 @@ const initialState = {
   notificationsLoading: false,
   notificationsError: null,
   unreadCount: 0,
+  selectedClassDetails: null,
 
   // General loading state
   statsLoading: false,
@@ -197,6 +275,54 @@ const dashboardSlice = createSlice({
         state.statsError = action.payload?.message || 'Failed to fetch stats'
       })
 
+    // Fetch Admin Dashboard
+    builder
+      .addCase(fetchAdminDashboard.pending, (state) => {
+        state.statsLoading = true
+        state.statsError = null
+      })
+      .addCase(fetchAdminDashboard.fulfilled, (state, action) => {
+        state.statsLoading = false
+        state.stats = action.payload.data || action.payload
+        state.lastFetchTime.stats = Date.now()
+      })
+      .addCase(fetchAdminDashboard.rejected, (state, action) => {
+        state.statsLoading = false
+        state.statsError = action.payload?.message || 'Failed to fetch admin dashboard'
+      })
+
+    // Fetch Student Dashboard
+    builder
+      .addCase(fetchStudentDashboard.pending, (state) => {
+        state.statsLoading = true
+        state.statsError = null
+      })
+      .addCase(fetchStudentDashboard.fulfilled, (state, action) => {
+        state.statsLoading = false
+        state.stats = action.payload.data || action.payload
+        state.lastFetchTime.stats = Date.now()
+      })
+      .addCase(fetchStudentDashboard.rejected, (state, action) => {
+        state.statsLoading = false
+        state.statsError = action.payload?.message || 'Failed to fetch student dashboard'
+      })
+
+    // Fetch Teacher Dashboard
+    builder
+      .addCase(fetchTeacherDashboard.pending, (state) => {
+        state.statsLoading = true
+        state.statsError = null
+      })
+      .addCase(fetchTeacherDashboard.fulfilled, (state, action) => {
+        state.statsLoading = false
+        state.stats = action.payload.data || action.payload
+        state.lastFetchTime.stats = Date.now()
+      })
+      .addCase(fetchTeacherDashboard.rejected, (state, action) => {
+        state.statsLoading = false
+        state.statsError = action.payload?.message || 'Failed to fetch teacher dashboard'
+      })
+
     // Fetch Users
     builder
       .addCase(fetchUsers.pending, (state) => {
@@ -274,6 +400,38 @@ const dashboardSlice = createSlice({
       })
       .addCase(markNotificationAsRead.rejected, (state, action) => {
         state.notificationsError = action.payload?.message || 'Failed to mark notification as read'
+      })
+
+    // Add Class
+    builder
+      .addCase(addClass.fulfilled, (state, action) => {
+        const newClass = action.payload.data || action.payload
+        if (state.classes) {
+          state.classes.push(newClass)
+        }
+      })
+
+    // Update Class
+    builder
+      .addCase(updateClass.fulfilled, (state, action) => {
+        const updatedClass = action.payload.data || action.payload
+        const index = state.classes?.findIndex(c => c._id === updatedClass._id)
+        if (index !== -1 && index !== undefined) {
+          state.classes[index] = updatedClass
+        }
+      })
+
+    // Delete Class
+    builder
+      .addCase(deleteClass.fulfilled, (state, action) => {
+        const id = action.payload.id
+        state.classes = state.classes?.filter(c => c._id !== id)
+      })
+
+    // Fetch Class By ID
+    builder
+      .addCase(fetchClassById.fulfilled, (state, action) => {
+        state.selectedClassDetails = action.payload.data || action.payload
       })
   },
 })

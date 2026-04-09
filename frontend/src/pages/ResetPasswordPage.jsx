@@ -74,9 +74,9 @@ const ResetPasswordPage = () => {
 
     setIsLoading(true)
     try {
-      await authService.resetPassword({
-        token,
+      await authService.resetPassword(token, {
         password: formData.password,
+        confirmPassword: formData.confirmPassword,
       })
 
       setSubmitted(true)

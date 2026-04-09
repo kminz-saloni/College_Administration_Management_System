@@ -412,6 +412,48 @@ const validateAttendanceUpdate = (data) => {
   return schema.validate(data, { abortEarly: false });
 };
 
+
+/**
+ * Validate video upload input
+ * @param {Object} data - Video upload metadata
+ * @returns {Object} - Joi validation result
+ */
+const validateVideoUpload = (data) => {
+  const schema = Joi.object({
+    title: Joi.string().trim().min(3).max(100).required(),
+    description: Joi.string().trim().max(1000).optional().allow(''),
+    subject: Joi.string().trim().required(),
+    classId: Joi.string()
+      .regex(/^[0-9a-fA-F]{24}$/)
+      .required()
+      .messages({
+        'string.pattern.base': 'Invalid class ID format',
+        'any.required': 'Class ID is required',
+      }),
+    duration: Joi.number().min(0).optional().allow(null),
+    status: Joi.string().valid('draft', 'published').optional(),
+  });
+
+  return schema.validate(data, { abortEarly: false });
+};
+
+/**
+ * Validate video update input
+ * @param {Object} data - Video update metadata
+ * @returns {Object} - Joi validation result
+ */
+const validateVideoUpdate = (data) => {
+  const schema = Joi.object({
+    title: Joi.string().trim().min(3).max(100).optional(),
+    description: Joi.string().trim().max(1000).optional().allow(''),
+    subject: Joi.string().trim().optional(),
+    duration: Joi.number().min(0).optional().allow(null),
+    isPublished: Joi.boolean().optional(),
+  });
+
+  return schema.validate(data, { abortEarly: false });
+};
+
 // ============================================
 // EXPORTS
 // ============================================
@@ -429,6 +471,8 @@ module.exports = {
   validateEvent,
   validateEventUpdate,
   validateEventRSVP,
+  validateVideoUpload,
+  validateVideoUpdate,
 
   // Utility functions
   isValidEmail,

@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { fetchDashboardStats, fetchClasses } from '../store/slices/dashboardSlice'
+import { fetchStudentDashboard } from '../store/slices/dashboardSlice'
 import StudentScheduleTimetable from '../components/Dashboard/StudentScheduleTimetable'
 import StudentFeePaymentStatus from '../components/Dashboard/StudentFeePaymentStatus'
 import StudentAvailableVideosList from '../components/Dashboard/StudentAvailableVideosList'
@@ -14,9 +14,8 @@ const StudentDashboard = () => {
   const error = statsError || classesError
 
   useEffect(() => {
-    // Fetch student-specific dashboard data
-    dispatch(fetchDashboardStats())
-    dispatch(fetchClasses())
+    // Fetch student-specific dashboard data using student endpoint
+    dispatch(fetchStudentDashboard())
   }, [dispatch])
 
   if (isLoading) {

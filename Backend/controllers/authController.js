@@ -397,7 +397,7 @@ const forgotPassword = async (req, res, next) => {
     }
 
     // Generate reset token
-    const resetToken = await AuthService.generatePasswordResetToken(user._id);
+    const { resetToken } = await AuthService.generatePasswordResetToken(user._id);
 
     // Save token to user
     await user.setPasswordResetToken(resetToken);
@@ -471,9 +471,11 @@ const resetPassword = async (req, res, next) => {
     // Hash new password
     const hashedPassword = await AuthService.hashPassword(password);
 
-    // Update password and clear reset token
-    user.password = hashedPassword;
-    await user.clearPasswordResetToken();
+    // Atomically update password and clear reset token in one DB call
+    await user.updateOne({
+      $set: { password: hashedPassword },
+      $unset: { passwordResetToken: 1, passwordResetExpiry: 1 },
+    });
 
     logger.info('Password reset successful', { userId: user._id });
 

@@ -3,6 +3,8 @@ import { useDispatch, useSelector } from 'react-redux'
 import { uploadVideo } from '@/store/slices/videoSlice'
 import { showToast } from '@/store/slices/notificationSlice'
 import { CloudArrowUpIcon } from '@heroicons/react/24/outline'
+import { fetchClasses } from '@/store/slices/dashboardSlice'
+import { useEffect } from 'react'
 
 const VideoUploadScreen = () => {
   const dispatch = useDispatch()
@@ -11,13 +13,18 @@ const VideoUploadScreen = () => {
     title: '',
     description: '',
     subject: '',
-    class: '',
+    classId: '',
     file: null,
     thumbnail: null,
     status: 'draft',
   })
   const [fileName, setFileName] = useState('')
   const [thumbnailName, setThumbnailName] = useState('')
+  const { classes, classesLoading } = useSelector((state) => state.dashboard)
+
+  useEffect(() => {
+    dispatch(fetchClasses())
+  }, [dispatch])
 
   const supportedFormats = ['mp4', 'webm', 'mov', 'avi', 'mkv']
   const maxFileSize = 500 * 1024 * 1024 // 500 MB
@@ -96,7 +103,7 @@ const VideoUploadScreen = () => {
       return false
     }
 
-    if (!formData.class) {
+    if (!formData.classId) {
       dispatch(showToast({ message: 'Please select class', type: 'error' }))
       return false
     }
@@ -118,7 +125,7 @@ const VideoUploadScreen = () => {
     uploadFormData.append('title', formData.title)
     uploadFormData.append('description', formData.description)
     uploadFormData.append('subject', formData.subject)
-    uploadFormData.append('class', formData.class)
+    uploadFormData.append('classId', formData.classId)
     uploadFormData.append('status', formData.status)
     uploadFormData.append('file', formData.file)
     if (formData.thumbnail) {
@@ -139,7 +146,7 @@ const VideoUploadScreen = () => {
           title: '',
           description: '',
           subject: '',
-          class: '',
+          classId: '',
           file: null,
           thumbnail: null,
           status: 'draft',
@@ -222,18 +229,18 @@ const VideoUploadScreen = () => {
                   Class *
                 </label>
                 <select
-                  name="class"
-                  value={formData.class}
+                  name="classId"
+                  value={formData.classId}
                   onChange={handleInputChange}
+                  disabled={classesLoading}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   <option value="">Select Class</option>
-                  <option value="10A">10A</option>
-                  <option value="10B">10B</option>
-                  <option value="11A">11A</option>
-                  <option value="11B">11B</option>
-                  <option value="12A">12A</option>
-                  <option value="12B">12B</option>
+                  {classes && classes.map((cls) => (
+                    <option key={cls._id} value={cls._id}>
+                      {cls.name} - {cls.subject || 'All Subjects'}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>

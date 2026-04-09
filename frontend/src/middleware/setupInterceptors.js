@@ -119,10 +119,13 @@ export const setupInterceptors = (reduxStore) => {
  * Falls back to Redux state
  */
 const getTokenFromStorage = () => {
-  if (!store) return null
-
-  const state = store.getState()
-  return state.auth?.token || null
+  if (store) {
+    const state = store.getState()
+    if (state.auth?.token) return state.auth.token
+  }
+  
+  // Fallback to localStorage
+  return getStoredToken()
 }
 
 /**
@@ -130,31 +133,39 @@ const getTokenFromStorage = () => {
  */
 export const refreshAccessToken = async () => {
   try {
-    const response = await api.post('/auth/refresh-token')
+    // Get stored refresh token from Redux state
+    const state = store ? store.getState() : null
+    const storedRefreshToken = state?.auth?.refreshToken
 
-    if (response.data.token || response.data.accessToken) {
-      const newToken = response.data.token || response.data.accessToken
-      const refreshToken = response.data.refreshToken
+    if (!storedRefreshToken) {
+      throw new Error('No refresh token available')
+    }
+
+    const response = await api.post('/auth/refresh-token', {
+      refreshToken: storedRefreshToken,
+    })
+
+    if (response.data?.data?.accessToken || response.data?.accessToken) {
+      const newToken = response.data?.data?.accessToken || response.data?.accessToken
+      const newRefreshToken = response.data?.data?.refreshToken || response.data?.refreshToken
 
       // Update token in Redux store
       if (store) {
         store.dispatch(updateToken(newToken))
 
-        // Also update refresh token if provided
-        if (refreshToken) {
-          // Store in Redux (consider httpOnly cookie from backend)
-          const state = store.getState()
+        if (newRefreshToken) {
+          const currentState = store.getState()
           store.dispatch(
             setAuth({
-              user: state.auth.user,
+              user: currentState.auth.user,
               token: newToken,
-              refreshToken: refreshToken,
+              refreshToken: newRefreshToken,
             })
           )
         }
       }
 
-      return response.data
+      return { token: newToken, refreshToken: newRefreshToken }
     }
   } catch (error) {
     console.error('Token refresh failed:', error)

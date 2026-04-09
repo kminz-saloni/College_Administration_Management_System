@@ -235,6 +235,7 @@ const getClassById = async (req, res, next) => {
 
     const classData = await Class.findById(id)
       .populate('teacher', 'name email department')
+      .populate('students', 'name email')
       .lean();
 
     if (!classData || !classData.isActive) {

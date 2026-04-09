@@ -102,7 +102,7 @@ const authService = {
    */
   resetPassword: async (token, data) => {
     try {
-      const response = await api.post(`/auth/reset-password/${token}`, data)
+      const response = await api.post('/auth/reset-password', { token, ...data })
       return response.data
     } catch (error) {
       throw error.response?.data || { message: 'Password reset failed' }

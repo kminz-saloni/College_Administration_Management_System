@@ -1,17 +1,24 @@
 import { createSlice } from '@reduxjs/toolkit'
 
+import config from '@/config/environment'
+import { getStoredUser } from '@/utils/tokenUtils'
+
+const token = localStorage.getItem(config.auth.tokenKey)
+const refreshToken = localStorage.getItem(config.auth.refreshTokenKey)
+const user = getStoredUser()
+
 const initialState = {
-  isAuthenticated: false,
-  user: {
+  isAuthenticated: !!token && !!user,
+  user: user || {
     id: null,
     email: null,
     name: null,
-    role: null, // 'admin', 'teacher', 'student'
+    role: null,
     avatar: null,
     verified: false,
   },
-  token: null,
-  refreshToken: null,
+  token: token || null,
+  refreshToken: refreshToken || null,
   loading: false,
   error: null,
 }

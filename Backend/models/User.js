@@ -277,7 +277,7 @@ userSchema.methods.toJSON = function () {
  * @returns {Promise<User>}
  */
 userSchema.statics.findByEmailWithPassword = function (email) {
-  return this.findOne({ email: email.toLowerCase() }, { password: 1, email: 1, role: 1, isActive: 1, loginAttempts: 1, lockUntil: 1 });
+  return this.findOne({ email: email.toLowerCase() }, { password: 1, name: 1, email: 1, role: 1, phone: 1, isActive: 1, loginAttempts: 1, lockUntil: 1 });
 };
 
 /**
@@ -318,7 +318,7 @@ userSchema.statics.findByPasswordResetToken = function (token) {
   return this.findOne({
     passwordResetToken: token,
     passwordResetExpiry: { $gt: Date.now() },
-  });
+  }).select('+passwordResetToken +passwordResetExpiry');
 };
 
 /**

@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { fetchDashboardStats, fetchUsers, fetchClasses, fetchReports } from '../store/slices/dashboardSlice'
+import { fetchAdminDashboard, fetchUsers, fetchClasses, fetchReports } from '../store/slices/dashboardSlice'
 import OverviewCards from '../components/Dashboard/OverviewCards'
 import UsersManagementTable from '../components/Dashboard/UsersManagementTable'
 import ClassesManagementInterface from '../components/Dashboard/ClassesManagementInterface'
@@ -12,8 +12,8 @@ const AdminDashboard = () => {
   const { loading, error } = useSelector((state) => state.dashboard)
 
   useEffect(() => {
-    // Fetch all dashboard data on mount
-    dispatch(fetchDashboardStats())
+    // Fetch admin dashboard data
+    dispatch(fetchAdminDashboard())
     dispatch(fetchUsers())
     dispatch(fetchClasses())
     dispatch(fetchReports())

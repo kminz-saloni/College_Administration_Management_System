@@ -73,4 +73,31 @@ router.get('/teacher', roleGuard(['teacher']), dashboardController.getTeacherDas
  */
 router.get('/student', roleGuard(['student']), dashboardController.getStudentDashboard);
 
+// ============================================
+// SHARED DATA ENDPOINTS
+// ============================================
+
+/**
+ * GET /dashboard/classes
+ * Get classes list
+ * - Admin/Teacher: all active classes
+ * - Student: their enrolled classes (via getStudentDashboard logic)
+ * @access Admin, Teacher, Student (role-filtered)
+ */
+router.get('/classes', dashboardController.getDashboardClasses);
+
+/**
+ * GET /dashboard/users
+ * Get users list (admin/teacher only)
+ * @access Admin, Teacher
+ */
+router.get('/users', roleGuard(['admin', 'teacher']), dashboardController.getDashboardUsers);
+
+/**
+ * GET /dashboard/reports
+ * Get reports data (admin only)
+ * @access Admin
+ */
+router.get('/reports', roleGuard(['admin']), dashboardController.getDashboardReports);
+
 module.exports = router;

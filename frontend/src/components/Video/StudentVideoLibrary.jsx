@@ -1,18 +1,24 @@
 import { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { fetchVideos, setFilters, fetchVideoById } from '@/store/slices/videoSlice'
+import { fetchClasses } from '@/store/slices/dashboardSlice'
 import { MagnifyingGlassIcon, PlayIcon } from '@heroicons/react/24/outline'
 import VideoPlayer from './VideoPlayer'
 
 const StudentVideoLibrary = () => {
   const dispatch = useDispatch()
   const { videos, loading, filters, currentVideo } = useSelector((state) => state.video)
+  const { classes } = useSelector((state) => state.dashboard)
   const [searchInput, setSearchInput] = useState('')
   const [isPlayerOpen, setIsPlayerOpen] = useState(false)
 
   useEffect(() => {
     dispatch(fetchVideos(filters))
   }, [dispatch, filters])
+
+  useEffect(() => {
+    dispatch(fetchClasses())
+  }, [dispatch])
 
   const handleSearch = (e) => {
     const value = e.target.value
@@ -88,18 +94,17 @@ const StudentVideoLibrary = () => {
 
             {/* Class Filter */}
             <select
-              name="class"
-              value={filters.class}
+              name="classId"
+              value={filters.classId}
               onChange={handleFilterChange}
               className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="">All Classes</option>
-              <option value="10A">10A</option>
-              <option value="10B">10B</option>
-              <option value="11A">11A</option>
-              <option value="11B">11B</option>
-              <option value="12A">12A</option>
-              <option value="12B">12B</option>
+              {classes.map((cls) => (
+                <option key={cls._id} value={cls._id}>
+                  {cls.name}
+                </option>
+              ))}
             </select>
           </div>
         </div>

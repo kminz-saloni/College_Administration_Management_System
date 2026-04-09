@@ -88,7 +88,7 @@ const initialState = {
   uploadProgress: 0,
   filters: {
     subject: '',
-    class: '',
+    classId: '',
     searchTerm: '',
   },
 }
@@ -101,7 +101,7 @@ const videoSlice = createSlice({
       state.filters = { ...state.filters, ...action.payload }
     },
     clearFilters: (state) => {
-      state.filters = { subject: '', class: '', searchTerm: '' }
+      state.filters = { subject: '', classId: '', searchTerm: '' }
     },
     setUploadProgress: (state, action) => {
       state.uploadProgress = action.payload

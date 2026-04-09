@@ -12,6 +12,8 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { setupInterceptors } from '@/middleware/setupInterceptors'
 import { useAppDispatch } from '@/hooks/useRedux'
 import store from '@/store/store'
+import { setAuth } from '@/store/slices/authSlice'
+import config from '@/config/environment'
 
 // Auth Pages
 import LoginPage from '@/pages/LoginPage'
@@ -33,6 +35,12 @@ import TeacherDashboard from '@/pages/TeacherDashboard'
 import StudentDashboard from '@/pages/StudentDashboard'
 import AnalyticsDashboardPage from '@/pages/AnalyticsDashboardPage'
 import StudentPaymentsPage from '@/pages/StudentPaymentsPage'
+import UsersManagementPage from '@/pages/UsersManagementPage'
+import ClassesManagementPage from '@/pages/ClassesManagementPage'
+import AttendancePage from '@/pages/AttendancePage'
+import VideoLibraryPage from '@/pages/VideoLibraryPage'
+import VideoUploadPage from '@/pages/VideoUploadPage'
+import SettingsPage from '@/pages/SettingsPage'
 
 // Utils
 import { getStoredUser, isTokenValid } from '@/utils/tokenUtils'
@@ -49,15 +57,10 @@ function App() {
     // Set up request/response interceptors
     setupInterceptors(store)
 
-    // Check for stored authentication data
-    const storedUser = getStoredUser()
-    const token = localStorage.getItem('authToken')
-
-    // If we have stored credentials and token is valid, the auth state should already be set
-    // If token is expired, the user will need to login again (interceptor will handle refresh)
-    if (storedUser && token && !isTokenValid(token)) {
-      // Token is expired, but interceptor will attempt refresh
-      // If that fails, user will be redirected to login
+    // Verify token validity on load
+    const token = store.getState().auth.token
+    if (token && !isTokenValid(token)) {
+      dispatch(logout())
     }
   }, [dispatch])
 
@@ -74,7 +77,7 @@ function App() {
 
         {/* Protected Routes with MainLayout */}
         <Route element={<MainLayout />}>
-          {/* Admin Dashboard */}
+          {/* Dashboard Routes */}
           <Route
             path="/admin/dashboard"
             element={
@@ -83,8 +86,6 @@ function App() {
               </RoleProtectedRoute>
             }
           />
-
-          {/* Teacher Dashboard */}
           <Route
             path="/teacher/dashboard"
             element={
@@ -93,8 +94,6 @@ function App() {
               </RoleProtectedRoute>
             }
           />
-
-          {/* Student Dashboard */}
           <Route
             path="/student/dashboard"
             element={
@@ -104,7 +103,23 @@ function App() {
             }
           />
 
-          {/* Admin Analytics */}
+          {/* Admin Specific Routes */}
+          <Route
+            path="/admin/users"
+            element={
+              <RoleProtectedRoute requiredRole="admin">
+                <UsersManagementPage />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/classes"
+            element={
+              <RoleProtectedRoute requiredRole="admin">
+                <ClassesManagementPage />
+              </RoleProtectedRoute>
+            }
+          />
           <Route
             path="/admin/analytics"
             element={
@@ -113,8 +128,56 @@ function App() {
               </RoleProtectedRoute>
             }
           />
+          <Route
+            path="/admin/analytics/reports"
+            element={
+              <RoleProtectedRoute requiredRole="admin">
+                <AnalyticsDashboardPage view="reports" />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/settings"
+            element={
+              <RoleProtectedRoute requiredRole="admin">
+                <SettingsPage />
+              </RoleProtectedRoute>
+            }
+          />
 
-          {/* Teacher Analytics */}
+          {/* Teacher Specific Routes */}
+          <Route
+            path="/teacher/classes"
+            element={
+              <RoleProtectedRoute requiredRole="teacher">
+                <ClassesManagementPage />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="/teacher/attendance"
+            element={
+              <RoleProtectedRoute requiredRole="teacher">
+                <AttendancePage />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="/teacher/videos/library"
+            element={
+              <RoleProtectedRoute requiredRole="teacher">
+                <VideoLibraryPage />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="/teacher/videos/upload"
+            element={
+              <RoleProtectedRoute requiredRole="teacher">
+                <VideoUploadPage />
+              </RoleProtectedRoute>
+            }
+          />
           <Route
             path="/teacher/analytics"
             element={
@@ -123,8 +186,40 @@ function App() {
               </RoleProtectedRoute>
             }
           />
+          <Route
+            path="/teacher/settings"
+            element={
+              <RoleProtectedRoute requiredRole="teacher">
+                <SettingsPage />
+              </RoleProtectedRoute>
+            }
+          />
 
-          {/* Student Payments */}
+          {/* Student Specific Routes */}
+          <Route
+            path="/student/classes"
+            element={
+              <RoleProtectedRoute requiredRole="student">
+                <ClassesManagementPage />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="/student/attendance"
+            element={
+              <RoleProtectedRoute requiredRole="student">
+                <AttendancePage />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="/student/videos"
+            element={
+              <RoleProtectedRoute requiredRole="student">
+                <VideoLibraryPage />
+              </RoleProtectedRoute>
+            }
+          />
           <Route
             path="/student/payments"
             element={
@@ -133,9 +228,14 @@ function App() {
               </RoleProtectedRoute>
             }
           />
-
-          {/* Additional authenticated routes can be added here */}
-          {/* Example: Users, Classes, Videos, Attendance, Payments, etc. */}
+          <Route
+            path="/student/settings"
+            element={
+              <RoleProtectedRoute requiredRole="student">
+                <SettingsPage />
+              </RoleProtectedRoute>
+            }
+          />
         </Route>
 
         {/* Unauthorized Access Page */}

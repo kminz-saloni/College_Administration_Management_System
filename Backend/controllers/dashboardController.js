@@ -307,11 +307,11 @@ const getStudentDashboard = async (req, res, next) => {
         id: cls._id,
         name: cls.name,
         subject: cls.subject,
-        teacher: {
+        teacher: cls.teacher ? {
           id: cls.teacher._id,
           name: cls.teacher.name,
           email: cls.teacher.email,
-        },
+        } : null,
         schedule: cls.schedule || {},
       })),
       timestamp: new Date().toISOString(),
@@ -322,9 +322,143 @@ const getStudentDashboard = async (req, res, next) => {
   }
 };
 
+/**
+ * Get classes list (role-filtered)
+ * GET /dashboard/classes
+ * - Students: their enrolled classes
+ * - Admin/Teacher: all active classes
+ */
+const getDashboardClasses = async (req, res, next) => {
+  try {
+    const role = req.user.role;
+
+    let classes;
+    if (role === constants.ROLES.STUDENT) {
+      // Students see only their enrolled classes
+      classes = await Class.find({
+        students: req.user.userId,
+        isActive: true,
+        deletedAt: null,
+      })
+        .select('name subject teacher teacherName schedule studentCount')
+        .populate('teacher', 'name email')
+        .lean();
+    } else {
+      // Admin/Teacher see all classes
+      classes = await Class.find({ isActive: true, deletedAt: null })
+        .select('name subject teacher teacherName schedule studentCount')
+        .populate('teacher', 'name email')
+        .lean();
+    }
+
+    return sendSuccess(res, 'Classes retrieved successfully', {
+      classes: classes.map((cls) => ({
+        id: cls._id,
+        name: cls.name,
+        subject: cls.subject,
+        students: cls.studentCount || 0,
+        teacher: cls.teacher
+          ? { id: cls.teacher._id, name: cls.teacher.name }
+          : { name: cls.teacherName || 'Unknown' },
+        schedule: cls.schedule || {},
+      })),
+      total: classes.length,
+    });
+  } catch (error) {
+    logger.error('Error fetching classes', { error: error.message });
+    next(error);
+  }
+};
+
+/**
+ * Get users list (admin/teacher)
+ * GET /dashboard/users
+ */
+const getDashboardUsers = async (req, res, next) => {
+  try {
+    const { page = 1, limit = 20, role, search } = req.query;
+    const skip = (page - 1) * limit;
+
+    const filter = { isActive: true, deletedAt: null };
+    if (role) filter.role = role;
+    if (search) {
+      filter.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    const [users, total] = await Promise.all([
+      User.find(filter)
+        .select('name email role department designation lastLogin createdAt')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(Number(limit))
+        .lean(),
+      User.countDocuments(filter),
+    ]);
+
+    return sendSuccess(res, 'Users retrieved successfully', {
+      users: users.map((u) => ({
+        id: u._id,
+        name: u.name,
+        email: u.email,
+        role: u.role,
+        department: u.department,
+        designation: u.designation,
+        lastLogin: u.lastLogin,
+        joinedAt: u.createdAt,
+      })),
+      total,
+      page: Number(page),
+      limit: Number(limit),
+      pages: Math.ceil(total / limit),
+    });
+  } catch (error) {
+    logger.error('Error fetching users', { error: error.message });
+    next(error);
+  }
+};
+
+/**
+ * Get reports data (admin)
+ * GET /dashboard/reports
+ */
+const getDashboardReports = async (req, res, next) => {
+  try {
+    const [totalUsers, totalClasses] = await Promise.all([
+      User.countDocuments({ isActive: true, deletedAt: null }),
+      Class.countDocuments({ isActive: true, deletedAt: null }),
+    ]);
+
+    const usersByRole = await User.aggregate([
+      { $match: { isActive: true, deletedAt: null } },
+      { $group: { _id: '$role', count: { $sum: 1 } } },
+    ]);
+
+    const roleCounts = { admin: 0, teacher: 0, student: 0 };
+    usersByRole.forEach((r) => { roleCounts[r._id] = r.count; });
+
+    return sendSuccess(res, 'Reports retrieved successfully', {
+      summary: {
+        totalUsers,
+        totalClasses,
+        usersByRole: roleCounts,
+      },
+      generatedAt: new Date().toISOString(),
+    });
+  } catch (error) {
+    logger.error('Error fetching reports', { error: error.message });
+    next(error);
+  }
+};
+
 module.exports = {
   getDashboardStats,
   getAdminDashboard,
   getTeacherDashboard,
   getStudentDashboard,
+  getDashboardClasses,
+  getDashboardUsers,
+  getDashboardReports,
 };

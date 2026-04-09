@@ -14,6 +14,10 @@ const logger = require('../utils/logger');
  * @returns {function} - Express middleware
  */
 const roleGuard = (...allowedRoles) => {
+  // Flatten in case caller passes an array instead of spread args
+  // e.g., roleGuard(['admin']) → allowedRoles = [['admin']] → flatten to ['admin']
+  const roles = allowedRoles.flat();
+
   return (req, res, next) => {
     // Check if user is authenticated
     if (!req.user) {
@@ -30,14 +34,14 @@ const roleGuard = (...allowedRoles) => {
     const userRole = req.user.role;
 
     // Check if user's role is in allowed roles
-    if (!allowedRoles.includes(userRole)) {
+    if (!roles.includes(userRole)) {
       logger.warn(
-        `Role guard: User ${req.user.userId} with role '${userRole}' attempted to access resource requiring roles: [${allowedRoles.join(', ')}]`
+        `Role guard: User ${req.user.userId} with role '${userRole}' attempted to access resource requiring roles: [${roles.join(', ')}]`
       );
 
       return sendError(
         res,
-        `Insufficient permissions. Required roles: ${allowedRoles.join(', ')}`,
+        `Insufficient permissions. Required roles: ${roles.join(', ')}`,
         'FORBIDDEN',
         [{ field: 'role', message: `User role '${userRole}' not allowed` }],
         403

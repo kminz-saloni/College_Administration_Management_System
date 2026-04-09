@@ -9,6 +9,7 @@ import eventReducer from './slices/eventSlice'
 import eventAnalyticsReducer from './slices/eventAnalyticsSlice'
 import analyticsReducer from './slices/analyticsSlice'
 import paymentReducer from './slices/paymentSlice'
+import attendanceReducer from './slices/attendanceSlice'
 import { authMiddleware } from './middleware/authMiddleware'
 
 export const store = configureStore({
@@ -23,6 +24,7 @@ export const store = configureStore({
     eventAnalytics: eventAnalyticsReducer,
     analytics: analyticsReducer,
     payment: paymentReducer,
+    attendance: attendanceReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
