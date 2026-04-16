@@ -52,27 +52,24 @@ The system utilizes a flexible NoSQL MongoDB schema with the following core coll
    ```
 2. **Install Backend Dependencies:**
    ```bash
-   cd server
+   cd Backend
    npm install
    ```
 3. **Install Frontend Dependencies:**
    ```bash
-   cd client
+   cd frontend
    npm install
    ```
 4. **Environment Variables:**
-   Create a `.env` file in the `server` directory and add your secret keys:
-   ```env
-   MONGO_URI=your_mongodb_connection_string
-   JWT_SECRET=your_jwt_secret_key
-   RAZORPAY_KEY_ID=your_razorpay_key
-   RAZORPAY_WEBHOOK_SECRET=your_webhook_secret
-   ```
+
+# for testing phase all env variables file are hardcoded into Repo
+
+
 5. **Run the Application:**
-   ```bash
-   # In the server directory
+   ```bash ( You need to run 2 terminals )
+   # In the Backend directory
    npm start
    
-   # In the client directory
-   npm start
+   # In the frontend directory
+   npm run dev
    ```
