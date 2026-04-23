@@ -9,7 +9,7 @@ import { authService } from '@/services'
 import { setAuth } from '@/store/slices/authSlice'
 import { validate } from '@/utils/validation'
 import toast from 'react-hot-toast'
-import { Loader2, Mail, Lock, Eye, EyeOff, User, GraduationCap } from 'lucide-react'
+import { Loader2, Mail, Lock, Eye, EyeOff, User, GraduationCap, BookOpen } from 'lucide-react'
 
 const RegisterPage = () => {
   const [formData, setFormData] = useState({
@@ -18,7 +18,9 @@ const RegisterPage = () => {
     password: '',
     confirmPassword: '',
     role: 'student',
+    subjects: [],
   })
+  const [availableSubjects, setAvailableSubjects] = useState([])
   const [errors, setErrors] = useState({})
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
@@ -26,10 +28,35 @@ const RegisterPage = () => {
   const navigate = useNavigate()
   const dispatch = useAppDispatch()
 
+  // Fetch subjects when role changes to teacher
+  const fetchSubjects = async () => {
+    try {
+      const response = await authService.getSubjects()
+      if (response?.data?.subjects) {
+        setAvailableSubjects(response.data.subjects)
+      }
+    } catch (error) {
+      console.error('Failed to fetch subjects:', error)
+      toast.error('Failed to load subjects')
+    }
+  }
+
   const handleInputChange = (e) => {
     const { name, value } = e.target
     const updatedFormData = { ...formData, [name]: value }
     setFormData(updatedFormData)
+
+    // Handle role change
+    if (name === 'role') {
+      if (value === 'teacher') {
+        fetchSubjects()
+        // Clear student-only validations
+        setErrors((prev) => ({ ...prev, subjects: '' }))
+      } else {
+        setAvailableSubjects([])
+        setFormData((prev) => ({ ...prev, subjects: [] }))
+      }
+    }
 
     if (updatedFormData.role === 'teacher' && updatedFormData.email && !updatedFormData.email.toLowerCase().endsWith('@fot.college.edu')) {
       setErrors((prev) => ({
@@ -58,6 +85,18 @@ const RegisterPage = () => {
     }
   }
 
+  const handleSubjectToggle = (subjectId) => {
+    setFormData((prev) => ({
+      ...prev,
+      subjects: prev.subjects.includes(subjectId)
+        ? prev.subjects.filter((id) => id !== subjectId)
+        : [...prev.subjects, subjectId],
+    }))
+    if (errors.subjects) {
+      setErrors((prev) => ({ ...prev, subjects: '' }))
+    }
+  }
+
   const validateForm = () => {
     const newErrors = {}
     const nameValidation = validate.fullName(formData.name)
@@ -72,6 +111,9 @@ const RegisterPage = () => {
     if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = 'Passwords do not match'
     }
+    if (formData.role === 'teacher' && formData.subjects.length === 0) {
+      newErrors.subjects = 'Please select at least one subject'
+    }
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
@@ -85,15 +127,54 @@ const RegisterPage = () => {
 
     setIsLoading(true)
     try {
-      await authService.register({
+      const payload = {
         name: formData.name,
         email: formData.email,
         password: formData.password,
         confirmPassword: formData.confirmPassword,
         role: formData.role,
-      })
-      toast.success('Registration successful! Redirecting to login...')
-      setTimeout(() => navigate('/login'), 1500)
+      }
+      if (formData.role === 'teacher') {
+        payload.subjects = formData.subjects
+      }
+      
+      const response = await authService.register(payload)
+      
+      // Auto-login: Store auth data
+      if (response?.data?.token) {
+        // Store token in localStorage
+        localStorage.setItem('authToken', response.data.token)
+        
+        // Store user data in Redux
+        dispatch(setAuth({
+          token: response.data.token,
+          user: {
+            id: response.data.userId,
+            name: response.data.name,
+            email: response.data.email,
+            role: response.data.role,
+            subjects: response.data.subjects || [],
+          },
+          isAuthenticated: true,
+        }))
+        
+        // Show success banner for 2 seconds
+        toast.success('✓ Account created successfully!', {
+          duration: 2000,
+          icon: '🎓',
+        })
+        
+        // Redirect to appropriate dashboard after brief delay
+        setTimeout(() => {
+          if (response.data.role === 'teacher') {
+            navigate('/dashboard/teacher')
+          } else if (response.data.role === 'student') {
+            navigate('/dashboard/student')
+          } else {
+            navigate('/dashboard/admin')
+          }
+        }, 1500)
+      }
     } catch (error) {
       const errorMessage = error.response?.data?.message || error.message || 'Registration failed. Please try again.'
       setErrors({ submit: errorMessage })
@@ -167,6 +248,42 @@ const RegisterPage = () => {
             </p>
           )}
         </div>
+
+        {/* Subjects (Teachers only) */}
+        {formData.role === 'teacher' && (
+          <div>
+            <label className="input-label flex items-center gap-2">
+              <BookOpen className="w-4 h-4" />
+              Select Subjects
+            </label>
+            <div className={`border rounded-input p-4 ${errors.subjects ? 'border-danger' : 'border-border-app'}`}>
+              {availableSubjects.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {availableSubjects.map((subject) => (
+                    <label key={subject._id} className="flex items-center gap-3 cursor-pointer group">
+                      <input
+                        type="checkbox"
+                        checked={formData.subjects.includes(subject._id)}
+                        onChange={() => handleSubjectToggle(subject._id)}
+                        className="w-4 h-4 rounded border-border-app accent-primary"
+                      />
+                      <div className="flex-1 group-hover:bg-surface-2/30 p-2 rounded transition">
+                        <p className="text-sm font-medium text-text-primary">{subject.name}</p>
+                        <p className="text-xs text-text-muted">{subject.code}</p>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-text-muted py-4">Loading subjects...</p>
+              )}
+            </div>
+            {errors.subjects && <p className="input-error-text">{errors.subjects}</p>}
+            <p className="mt-2 text-xs text-text-muted">
+              Selected {formData.subjects.length} subject{formData.subjects.length !== 1 ? 's' : ''}
+            </p>
+          </div>
+        )}
 
         {/* Password */}
         <div>

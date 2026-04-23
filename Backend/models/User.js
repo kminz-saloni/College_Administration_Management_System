@@ -105,6 +105,14 @@ const userSchema = new mongoose.Schema(
       optional: true,
     },
 
+    // Teacher-specific fields
+    subjects: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Subject',
+      },
+    ],
+
     // Login Tracking
     lastLogin: {
       type: Date,
@@ -160,6 +168,9 @@ userSchema.index({ passwordResetToken: 1 }, { sparse: true });
 
 // Index for email verification lookups
 userSchema.index({ emailVerificationToken: 1 }, { sparse: true });
+
+// Index for teachers by subject
+userSchema.index({ role: 1, subjects: 1 }, { sparse: true });
 
 // ============================================
 // INSTANCE METHODS

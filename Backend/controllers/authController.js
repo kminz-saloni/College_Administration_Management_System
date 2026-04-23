@@ -67,8 +67,8 @@ const register = async (req, res, next) => {
     // Hash password
     const hashedPassword = await AuthService.hashPassword(password);
 
-    // Create user
-    const user = new User({
+    // Create user object
+    const userData = {
       name,
       email,
       password: hashedPassword,
@@ -76,13 +76,23 @@ const register = async (req, res, next) => {
       phone,
       isActive: true,
       emailVerified: false,
-    });
+    };
+
+    // Add subjects for teachers
+    if (role === constants.ROLES.TEACHER && value.subjects) {
+      userData.subjects = value.subjects;
+    }
+
+    const user = new User(userData);
 
     await user.save();
 
     logger.info('User registered successfully', { userId: user._id, email });
 
-    // Send success response
+    // Generate JWT token for auto-login
+    const token = AuthService.generateToken(user);
+
+    // Send success response with token
     return sendSuccess(
       res,
       {
@@ -90,7 +100,9 @@ const register = async (req, res, next) => {
         email: user.email,
         name: user.name,
         role: user.role,
-        message: 'Registration successful. Please log in.',
+        subjects: user.subjects || [],
+        token,
+        message: 'Account created successfully!',
       },
       'User registered successfully',
       constants.HTTP_STATUS.CREATED

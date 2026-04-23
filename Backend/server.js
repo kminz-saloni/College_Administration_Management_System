@@ -9,6 +9,7 @@ const cors = require('cors');
 const morgan = require('morgan');
 const config = require('./config/environment');
 const { connectDatabase } = require('./config/database');
+const { seedSubjects } = require('./services/seederService');
 const { requestLogger, notFoundHandler, errorHandler } = require('./middleware/errorHandler');
 const logger = require('./utils/logger');
 
@@ -90,10 +91,12 @@ app.use('/api/auth', authRoutes);
 const dashboardRoutes = require('./routes/dashboard');
 const usersRoutes = require('./routes/users');
 const classesRoutes = require('./routes/classes');
+const subjectsRoutes = require('./routes/subjects');
 
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/classes', classesRoutes);
+app.use('/api/subjects', subjectsRoutes);
 
 // Phase 4: Attendance routes
 const attendanceRoutes = require('./routes/attendance');
@@ -136,6 +139,13 @@ const startServer = async () => {
     if (config.app.env !== 'test') {
       logger.info('Starting College Admin Backend Application...');
       await connectDatabase();
+
+      // Seed default subjects if none exist
+      try {
+        await seedSubjects();
+      } catch (seedError) {
+        logger.warn('Could not seed subjects on startup (may already exist)', { error: seedError.message });
+      }
     }
 
     // Start Express server

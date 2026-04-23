@@ -343,8 +343,18 @@ const getDashboardClasses = async (req, res, next) => {
         .select('name subject teacher teacherName schedule studentCount')
         .populate('teacher', 'name email')
         .lean();
+    } else if (role === constants.ROLES.TEACHER) {
+      // Teachers see only their own classes
+      classes = await Class.find({
+        teacher: req.user._id,
+        isActive: true,
+        deletedAt: null,
+      })
+        .select('name subject teacher teacherName schedule studentCount')
+        .populate('teacher', 'name email')
+        .lean();
     } else {
-      // Admin/Teacher see all classes
+      // Admin sees all classes
       classes = await Class.find({ isActive: true, deletedAt: null })
         .select('name subject teacher teacherName schedule studentCount')
         .populate('teacher', 'name email')
@@ -380,7 +390,34 @@ const getDashboardUsers = async (req, res, next) => {
     const skip = (page - 1) * limit;
 
     const filter = { isActive: true, deletedAt: null };
-    if (role) filter.role = role;
+
+    // For teachers, only show students in their classes
+    if (req.user.role === constants.ROLES.TEACHER) {
+      // Get all student IDs from teacher's classes
+      const teacherClasses = await Class.find({ teacher: req.user._id })
+        .select('students')
+        .lean();
+      
+      const studentIds = [];
+      teacherClasses.forEach((cls) => {
+        if (cls.students && Array.isArray(cls.students)) {
+          studentIds.push(...cls.students);
+        }
+      });
+
+      // Teachers can only see students from their classes
+      if (studentIds.length > 0) {
+        filter._id = { $in: studentIds };
+        filter.role = constants.ROLES.STUDENT;
+      } else {
+        // If teacher has no classes, return empty result
+        filter._id = { $in: [] };
+      }
+    } else {
+      // Admin can filter by role if provided
+      if (role) filter.role = role;
+    }
+
     if (search) {
       filter.$or = [
         { name: { $regex: search, $options: 'i' } },

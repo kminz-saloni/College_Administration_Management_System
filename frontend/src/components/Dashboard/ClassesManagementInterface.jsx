@@ -4,11 +4,11 @@
  * - Card-based class list
  * - Search by name/code
  * - Add/Edit/Delete with modal
- * - Department/Semester info
+ * - Subject filtering by teacher's subjects
  * - Student count display
  */
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { Plus, Pencil, Trash2, X, Search, BookOpen, User, Layers, Hash } from 'lucide-react'
 import { addClass, updateClass, deleteClass } from '@/store/slices/dashboardSlice'
@@ -23,14 +23,15 @@ const ClassesManagementInterface = () => {
     stats,
   } = useSelector((state) => state.dashboard || {})
 
+  const { user } = useSelector((state) => state.auth || {})
+  
   // Safety check: ensure classes is an array before mapping/filtering
   const safeClasses = Array.isArray(classes) ? classes : []
-  
-  const { user } = useSelector((state) => state.auth || {})
   
   const [searchTerm, setSearchTerm] = useState('')
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingClass, setEditingClass] = useState(null)
+  const [teacherSubjects, setTeacherSubjects] = useState([])
   
   const [formData, setFormData] = useState({
     name: '',
@@ -40,6 +41,13 @@ const ClassesManagementInterface = () => {
     capacity: 50,
     academicYear: new Date().getFullYear().toString()
   })
+
+  // Load teacher's subjects from user data
+  useEffect(() => {
+    if (user && user.subjects) {
+      setTeacherSubjects(user.subjects || [])
+    }
+  }, [user])
 
   const filteredClasses = safeClasses.filter(cls =>
     cls.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -83,6 +91,18 @@ const ClassesManagementInterface = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    
+    // Validate subject is from teacher's subjects
+    const isValidSubject = teacherSubjects.some(subj => {
+      if (typeof subj === 'string') return subj === formData.subject
+      return subj._id === formData.subject || subj.name === formData.subject
+    })
+    
+    if (!isValidSubject && teacherSubjects.length > 0) {
+      dispatch(showToast({ type: 'error', message: 'Please select a valid subject' }))
+      return
+    }
+    
     let result
     if (editingClass) {
       result = await dispatch(updateClass({ id: editingClass._id, classData: formData }))
@@ -216,14 +236,29 @@ const ClassesManagementInterface = () => {
               </div>
               <div>
                 <label className="input-label">Subject</label>
-                <input
-                  required
-                  type="text"
-                  value={formData.subject}
-                  onChange={(e) => setFormData({...formData, subject: e.target.value})}
-                  className="input"
-                  placeholder="e.g. Data Structures"
-                />
+                {teacherSubjects.length > 0 ? (
+                  <select
+                    required
+                    value={formData.subject}
+                    onChange={(e) => setFormData({...formData, subject: e.target.value})}
+                    className="select"
+                  >
+                    <option value="">Select a subject</option>
+                    {teacherSubjects.map((subject) => {
+                      const subjectName = typeof subject === 'string' ? subject : subject.name
+                      const subjectValue = typeof subject === 'string' ? subject : subject._id
+                      return (
+                        <option key={subjectValue} value={subjectValue || subjectName}>
+                          {subjectName}
+                        </option>
+                      )
+                    })}
+                  </select>
+                ) : (
+                  <div className="p-3 bg-warning/10 border border-warning/20 rounded-input text-sm text-warning">
+                    No subjects selected during registration. Please contact administrator.
+                  </div>
+                )}
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>

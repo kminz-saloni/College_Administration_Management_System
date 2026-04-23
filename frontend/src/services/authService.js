@@ -160,6 +160,20 @@ const authService = {
       throw error.response?.data || { message: 'Change password failed' }
     }
   },
+
+  /**
+   * Get all subjects for teacher signup
+   */
+  getSubjects: async () => {
+    try {
+      const response = await api.get('/subjects')
+      return {
+        data: response.data.data,
+      }
+    } catch (error) {
+      throw error.response?.data || { message: 'Failed to fetch subjects' }
+    }
+  },
 }
 
 export default authService

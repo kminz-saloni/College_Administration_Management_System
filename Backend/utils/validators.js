@@ -81,6 +81,18 @@ const validateRegistration = (data) => {
       .messages({
         'string.pattern.base': 'Phone must be 10 digits',
       }),
+    subjects: Joi.when('role', {
+      is: 'teacher',
+      then: Joi.array()
+        .items(Joi.string().required())
+        .min(1)
+        .required()
+        .messages({
+          'array.min': 'Teachers must select at least one subject',
+          'any.required': 'Subjects are required for teachers',
+        }),
+      otherwise: Joi.forbidden(),
+    }),
   });
 
   return schema.validate(data, { abortEarly: false });

@@ -1,12 +1,3 @@
-/**
- * App Component
- * Main application component with routing configuration
- * Sets up route hierarchy:
- * - Public routes: /login, /register, /forgot-password, /reset-password/:token
- * - Protected routes: /admin/*, /teacher/*, /student/*
- * - MainLayout wraps all authenticated pages
- */
-
 import { useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { setupInterceptors, refreshAccessToken } from '@/middleware/setupInterceptors'
@@ -51,13 +42,7 @@ function App() {
   const dispatch = useAppDispatch()
   const { token, refreshToken, isAuthenticated } = useAppSelector((state) => state.auth)
 
-  /**
-   * Initialize authentication on app mount
-   * 1. Set up axios interceptors for JWT token handling
-   * 2. Check for stored auth data and restore session
-   */
   useEffect(() => {
-    // Set up request/response interceptors
     setupInterceptors(store)
 
     const restoreSession = async () => {
@@ -65,12 +50,10 @@ function App() {
       const hasAccessToken = Boolean(authState.token)
       const hasRefreshToken = Boolean(authState.refreshToken)
 
-      // Keep valid access token; no need to do anything.
       if (hasAccessToken && isTokenValid(authState.token)) {
         return
       }
 
-      // Attempt recovery with refresh token instead of logging out immediately.
       if (hasRefreshToken) {
         try {
           await refreshAccessToken()
