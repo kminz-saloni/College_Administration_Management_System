@@ -254,3 +254,23 @@ MIT License - See LICENSE file for details
 **Last Updated:** March 25, 2026  
 **Node Version:** 18+  
 **Express Version:** 4.18+
+
+
+
+TEST_ADMIN_1_NAME=System Admin One
+TEST_ADMIN_1_EMAIL=admin1@college.edu
+TEST_ADMIN_1_PASSWORD=Admin@1234
+
+TEST_ADMIN_2_NAME=System Admin Two
+TEST_ADMIN_2_EMAIL=admin2@college.edu
+TEST_ADMIN_2_PASSWORD=Admin@1234
+
+TEST_ADMIN_3_NAME=System Admin Three
+TEST_ADMIN_3_EMAIL=admin3@college.edu
+TEST_ADMIN_3_PASSWORD=Admin@1234
+
+
+
+Student@gmail.com
+Student@123
+
