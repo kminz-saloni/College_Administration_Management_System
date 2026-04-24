@@ -63,6 +63,7 @@ const validateInviteUser = (data) => {
     email: Joi.string().email().lowercase().required(),
     phone: Joi.string().regex(PHONE_REGEX).optional().allow('', null),
     role: Joi.string().valid('teacher', 'student').required(),
+    status: Joi.string().valid('invite_pending', 'inactive').optional(),
     department: Joi.string().trim().optional().allow('', null),
     designation: Joi.string().trim().optional().allow('', null),
     employeeId: Joi.string().trim().optional().allow('', null),
@@ -76,6 +77,20 @@ const validateInviteUser = (data) => {
     admissionYear: Joi.string().trim().optional().allow('', null),
     photo: Joi.string().uri().optional().allow('', null),
     subjectIds: Joi.array().items(Joi.string().regex(/^[0-9a-fA-F]{24}$/)).optional().default([]),
+  }).when(Joi.object({ role: Joi.valid('student') }).unknown(), {
+    then: Joi.object({
+      rollNo: Joi.string().trim().required(),
+      department: Joi.string().trim().required(),
+      semester: Joi.string().trim().required(),
+      section: Joi.string().trim().required(),
+      admissionYear: Joi.string().trim().required(),
+    }),
+  }).when(Joi.object({ role: Joi.valid('teacher') }).unknown(), {
+    then: Joi.object({
+      employeeId: Joi.string().trim().required(),
+      department: Joi.string().trim().required(),
+      designation: Joi.string().trim().required(),
+    }),
   });
 
   return schema.validate(data, { abortEarly: false });

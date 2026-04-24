@@ -5,7 +5,7 @@
 import React, { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { Plus, Pencil, Trash2, X, Search, BookOpen, User, Layers, Hash } from 'lucide-react'
-import { addClass, updateClass, deleteClass } from '@/store/slices/dashboardSlice'
+import { addClass, updateClass, deleteClass, fetchClasses } from '@/store/slices/dashboardSlice'
 import { showToast } from '@/store/slices/notificationSlice'
 import { authService } from '@/services'
 
@@ -62,7 +62,7 @@ const ClassesManagementInterface = () => {
         name: cls.name || '',
         classCode: cls.classCode || '',
         subjectId: cls.subjectId || '',
-        teacherId: cls.teacher?.id || cls.teacher || user?.id || '',
+        teacherId: cls.teacher?._id || cls.teacher?.id || cls.teacher || user?.id || '',
         description: cls.description || '',
         semester: cls.semester?.toString() || '',
         capacity: cls.capacity || 50,
@@ -85,6 +85,7 @@ const ClassesManagementInterface = () => {
     const result = await dispatch(deleteClass(id))
     if (result.type.endsWith('/fulfilled')) {
       dispatch(showToast({ type: 'success', message: 'Class archived successfully' }))
+      dispatch(fetchClasses())
     }
   }
 
@@ -114,7 +115,7 @@ const ClassesManagementInterface = () => {
 
     let result
     if (editingClass) {
-      result = await dispatch(updateClass({ id: editingClass._id, classData: payload }))
+      result = await dispatch(updateClass({ id: editingClass._id || editingClass.id, classData: payload }))
     } else {
       result = await dispatch(addClass(payload))
     }
@@ -126,6 +127,7 @@ const ClassesManagementInterface = () => {
           message: `Class ${editingClass ? 'updated' : 'created'} successfully`,
         })
       )
+      dispatch(fetchClasses())
       setIsModalOpen(false)
     }
   }
@@ -157,7 +159,7 @@ const ClassesManagementInterface = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 2xl:grid-cols-3 gap-4 overflow-y-auto pr-1">
         {filteredClasses.map((cls) => (
           <div
-            key={cls._id}
+            key={cls._id || cls.id}
             className="p-4 rounded-xl bg-surface-2 border border-border-app/50 hover:border-primary/30 hover:bg-surface-3 transition-all group relative overflow-hidden"
           >
             <div className="absolute top-0 right-0 w-20 h-20 -translate-y-1/2 translate-x-1/2 rounded-full bg-primary/5 blur-xl group-hover:bg-primary/10 transition-colors" />
@@ -178,7 +180,7 @@ const ClassesManagementInterface = () => {
                   <Pencil className="h-3.5 w-3.5" />
                 </button>
                 <button
-                  onClick={() => handleDelete(cls._id)}
+                  onClick={() => handleDelete(cls._id || cls.id)}
                   className="btn-icon p-1.5 text-text-muted hover:text-danger hover:bg-danger/10"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
@@ -286,7 +288,7 @@ const ClassesManagementInterface = () => {
                     >
                       <option value="">Select teacher</option>
                       {teacherOptions.map((teacher) => (
-                        <option key={teacher._id} value={teacher._id}>
+                        <option key={teacher._id || teacher.id} value={teacher._id || teacher.id}>
                           {teacher.name} ({teacher.email})
                         </option>
                       ))}

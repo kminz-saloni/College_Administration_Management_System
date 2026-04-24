@@ -498,6 +498,7 @@ const createUserByAdmin = async (req, res, next) => {
       email,
       phone,
       role,
+      status,
       department,
       designation,
       employeeId,
@@ -511,6 +512,10 @@ const createUserByAdmin = async (req, res, next) => {
       photo,
       subjectIds,
     } = value;
+
+    const normalizedStatus = status === constants.USER_STATUSES.INACTIVE
+      ? constants.USER_STATUSES.INACTIVE
+      : constants.USER_STATUSES.INVITE_PENDING;
 
     const existingUser = await User.findOne({ email: email.toLowerCase() });
     if (existingUser && existingUser.deletedAt === null) {
@@ -580,8 +585,8 @@ const createUserByAdmin = async (req, res, next) => {
       phone,
       department: departmentDoc?.name || department || '',
       designation: designation || '',
-      status: constants.USER_STATUSES.INVITE_PENDING,
-      isActive: false,
+      status: normalizedStatus,
+      isActive: normalizedStatus === constants.USER_STATUSES.ACTIVE,
       emailVerified: false,
       invitedBy: req.user._id,
       profilePicture: photo || '',

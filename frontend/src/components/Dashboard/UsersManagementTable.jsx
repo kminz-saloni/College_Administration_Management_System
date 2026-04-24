@@ -332,6 +332,7 @@ const UsersManagementTable = () => {
                     className="select"
                     disabled={Boolean(editingUser)}
                   >
+                    {editingUser && formData.role === 'admin' && <option value="admin">Admin</option>}
                     <option value="student">Student</option>
                     <option value="teacher">Teacher</option>
                   </select>
@@ -374,6 +375,7 @@ const UsersManagementTable = () => {
                         onChange={(e) => setFormData({ ...formData, rollNo: e.target.value })}
                         className="input"
                         placeholder="2024-CS-001"
+                        required={!editingUser}
                       />
                     </div>
                     <div>
@@ -384,6 +386,7 @@ const UsersManagementTable = () => {
                         onChange={(e) => setFormData({ ...formData, admissionYear: e.target.value })}
                         className="input"
                         placeholder="2024"
+                        required={!editingUser}
                       />
                     </div>
                     <div>
@@ -394,6 +397,7 @@ const UsersManagementTable = () => {
                         onChange={(e) => setFormData({ ...formData, department: e.target.value })}
                         className="input"
                         placeholder="Computer Science"
+                        required={!editingUser}
                       />
                     </div>
                     <div>
@@ -404,6 +408,7 @@ const UsersManagementTable = () => {
                         onChange={(e) => setFormData({ ...formData, semester: e.target.value })}
                         className="input"
                         placeholder="Semester 3"
+                        required={!editingUser}
                       />
                     </div>
                     <div>
@@ -414,6 +419,7 @@ const UsersManagementTable = () => {
                         onChange={(e) => setFormData({ ...formData, section: e.target.value })}
                         className="input"
                         placeholder="Section A"
+                        required={!editingUser}
                       />
                     </div>
                     <div>
@@ -444,6 +450,7 @@ const UsersManagementTable = () => {
                         onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })}
                         className="input"
                         placeholder="EMP-1001"
+                        required={!editingUser}
                       />
                     </div>
                     <div>
@@ -454,6 +461,7 @@ const UsersManagementTable = () => {
                         onChange={(e) => setFormData({ ...formData, designation: e.target.value })}
                         className="input"
                         placeholder="Assistant Professor"
+                        required={!editingUser}
                       />
                     </div>
                     <div>
@@ -464,6 +472,7 @@ const UsersManagementTable = () => {
                         onChange={(e) => setFormData({ ...formData, department: e.target.value })}
                         className="input"
                         placeholder="Computer Science"
+                        required={!editingUser}
                       />
                     </div>
                     <div>

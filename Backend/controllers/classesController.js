@@ -174,7 +174,7 @@ const createClass = async (req, res, next) => {
       createdBy: req.user._id,
     });
 
-    return sendSuccess(res, 'Class created successfully', {
+    return sendSuccess(res, {
       id: newClass._id,
       classCode: newClass.classCode,
       name: newClass.name,
@@ -192,7 +192,7 @@ const createClass = async (req, res, next) => {
       academicYear: newClass.academicYear,
       semester: newClass.semester,
       createdAt: newClass.createdAt,
-    });
+    }, 'Class created successfully');
   } catch (error) {
     logger.error('Error creating class', { error: error.message });
     next(error);
@@ -275,17 +275,22 @@ const getClasses = async (req, res, next) => {
       count: classes.length,
     });
 
-    return sendSuccess(res, 'Classes retrieved successfully', {
+    return sendSuccess(res, {
       classes: classes.map((cls) => ({
         id: cls._id,
         classCode: cls.classCode,
         name: cls.name,
         subject: cls.subjectId?.name || cls.subject,
         subjectId: cls.subjectId?._id || cls.subjectId,
-        teacher: {
-          id: cls.teacher._id,
-          name: cls.teacher.name,
-        },
+        teacher: cls.teacher
+          ? {
+            id: cls.teacher._id,
+            name: cls.teacher.name,
+          }
+          : {
+            id: null,
+            name: cls.teacherName || 'Unassigned',
+          },
         students: cls.studentCount,
         schedule: cls.schedule || {},
         academicYear: cls.academicYear,
@@ -302,7 +307,7 @@ const getClasses = async (req, res, next) => {
         total,
         pages: Math.ceil(total / limit),
       },
-    });
+    }, 'Classes retrieved successfully');
   } catch (error) {
     logger.error('Error fetching classes', { error: error.message });
     next(error);
@@ -339,7 +344,7 @@ const getClassById = async (req, res, next) => {
 
     // Check access permissions
     const hasAccess = req.user.role === constants.ROLES.ADMIN
-      || classData.teacher._id.toString() === req.user._id.toString()
+      || (classData.teacher && classData.teacher._id.toString() === req.user._id.toString())
       || classData.students.includes(req.user._id);
 
     if (!hasAccess) {
@@ -355,18 +360,24 @@ const getClassById = async (req, res, next) => {
 
     logger.info('Class retrieved successfully', { classId: id });
 
-    return sendSuccess(res, 'Class retrieved successfully', {
+    return sendSuccess(res, {
       id: classData._id,
       classCode: classData.classCode,
       name: classData.name,
       subject: classData.subjectId?.name || classData.subject,
       subjectId: classData.subjectId?._id || classData.subjectId,
       description: classData.description,
-      teacher: {
-        id: classData.teacher._id,
-        name: classData.teacher.name,
-        email: classData.teacher.email,
-      },
+      teacher: classData.teacher
+        ? {
+          id: classData.teacher._id,
+          name: classData.teacher.name,
+          email: classData.teacher.email,
+        }
+        : {
+          id: null,
+          name: classData.teacherName || 'Unassigned',
+          email: null,
+        },
       students: classData.studentCount,
       schedule: classData.schedule || {},
       academicYear: classData.academicYear,
@@ -378,7 +389,7 @@ const getClassById = async (req, res, next) => {
       status: classData.status || 'active',
       createdAt: classData.createdAt,
       updatedAt: classData.updatedAt,
-    });
+    }, 'Class retrieved successfully');
   } catch (error) {
     logger.error('Error fetching class by ID', { error: error.message });
     next(error);
@@ -479,7 +490,7 @@ const updateClass = async (req, res, next) => {
 
     logger.info('Class updated successfully', { classId: id });
 
-    return sendSuccess(res, 'Class updated successfully', {
+    return sendSuccess(res, {
       id: classData._id,
       classCode: classData.classCode,
       name: classData.name,
@@ -494,7 +505,7 @@ const updateClass = async (req, res, next) => {
       semesterId: classData.semesterId,
       sectionId: classData.sectionId,
       updatedAt: classData.updatedAt,
-    });
+    }, 'Class updated successfully');
   } catch (error) {
     logger.error('Error updating class', { error: error.message });
     next(error);
@@ -554,11 +565,11 @@ const deleteClass = async (req, res, next) => {
 
     logger.info('Class deleted successfully', { classId: id });
 
-    return sendSuccess(res, 'Class deleted successfully', {
+    return sendSuccess(res, {
       id: classData._id,
       classCode: classData.classCode,
       message: 'Class has been archived',
-    });
+    }, 'Class deleted successfully');
   } catch (error) {
     logger.error('Error deleting class', { error: error.message });
     next(error);

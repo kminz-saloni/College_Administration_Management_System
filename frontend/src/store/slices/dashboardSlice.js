@@ -212,6 +212,21 @@ const initialState = {
   cacheDuration: 5 * 60 * 1000, // 5 minutes cache
 }
 
+const normalizeClass = (value) => {
+  if (!value || typeof value !== 'object') return value
+
+  const normalized = { ...value }
+  if (!normalized._id && normalized.id) {
+    normalized._id = normalized.id
+  }
+
+  if (normalized.teacher && typeof normalized.teacher === 'object' && !normalized.teacher._id && normalized.teacher.id) {
+    normalized.teacher = { ...normalized.teacher, _id: normalized.teacher.id }
+  }
+
+  return normalized
+}
+
 const dashboardSlice = createSlice({
   name: 'dashboard',
   initialState,
@@ -353,7 +368,9 @@ const dashboardSlice = createSlice({
       .addCase(fetchClasses.fulfilled, (state, action) => {
         state.classesLoading = false
         // Extract classes array from the response structure
-        state.classes = action.payload.data?.classes || (Array.isArray(action.payload.data) ? action.payload.data : action.payload.classes || [])
+        const classes = action.payload.data?.classes
+          || (Array.isArray(action.payload.data) ? action.payload.data : action.payload.classes || [])
+        state.classes = Array.isArray(classes) ? classes.map((item) => normalizeClass(item)) : []
         state.lastFetchTime.classes = Date.now()
       })
       .addCase(fetchClasses.rejected, (state, action) => {
@@ -414,17 +431,18 @@ const dashboardSlice = createSlice({
     // Add Class
     builder
       .addCase(addClass.fulfilled, (state, action) => {
-        const newClass = action.payload.data || action.payload
-        if (state.classes) {
-          state.classes.push(newClass)
+        const newClass = normalizeClass(action.payload.data || action.payload)
+        if (state.classes && newClass && typeof newClass === 'object') {
+          state.classes.unshift(newClass)
         }
       })
 
     // Update Class
     builder
       .addCase(updateClass.fulfilled, (state, action) => {
-        const updatedClass = action.payload.data || action.payload
-        const index = state.classes?.findIndex(c => c._id === updatedClass._id)
+        const updatedClass = normalizeClass(action.payload.data || action.payload)
+        const updatedId = updatedClass?._id || updatedClass?.id
+        const index = state.classes?.findIndex((c) => (c._id || c.id) === updatedId)
         if (index !== -1 && index !== undefined) {
           state.classes[index] = updatedClass
         }
@@ -434,7 +452,7 @@ const dashboardSlice = createSlice({
     builder
       .addCase(deleteClass.fulfilled, (state, action) => {
         const id = action.payload.id
-        state.classes = state.classes?.filter(c => c._id !== id)
+        state.classes = state.classes?.filter((c) => (c._id || c.id) !== id)
       })
 
     // Fetch Class By ID
