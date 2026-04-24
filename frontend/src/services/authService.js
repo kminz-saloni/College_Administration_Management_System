@@ -15,15 +15,9 @@ const authService = {
    * @param {string} role - User role (admin, teacher, student)
    */
   register: async (data) => {
-    try {
-      const response = await api.post('/auth/register', data)
-      // Response structure: { success, message, data: {...} }
-      return {
-        data: response.data.data,
-      }
-    } catch (error) {
-      // Re-throw axios error properly so components can access error.response.data
-      throw error
+    const response = await api.post('/auth/register', data)
+    return {
+      data: response.data.data,
     }
   },
 
@@ -33,26 +27,22 @@ const authService = {
    * @param {string} password - User password
    */
   login: async (credentials) => {
-    try {
-      const response = await api.post('/auth/login', credentials)
-      // Response structure: { success, message, data: { accessToken, refreshToken, user } }
-      const { accessToken, refreshToken, user } = response.data.data
-      return {
-        data: {
-          token: accessToken, // Map accessToken to token
-          refreshToken,
-          user: {
-            id: user._id, // Map MongoDB _id to id
-            email: user.email,
-            name: user.name,
-            role: user.role,
-            phone: user.phone,
-          },
+    const response = await api.post('/auth/login', credentials)
+    const { accessToken, refreshToken, user } = response.data.data
+    return {
+      data: {
+        token: accessToken, // Map accessToken to token
+        refreshToken,
+        user: {
+          id: user._id, // Map MongoDB _id to id
+          email: user.email,
+          name: user.name,
+          role: user.role,
+          phone: user.phone,
+          status: user.status,
+          subjects: user.subjects || [],
         },
-      }
-    } catch (error) {
-      // Re-throw axios error properly so components can access error.response.data
-      throw error
+      },
     }
   },
 
@@ -172,6 +162,19 @@ const authService = {
       }
     } catch (error) {
       throw error.response?.data || { message: 'Failed to fetch subjects' }
+    }
+  },
+
+  /**
+   * Save student subject enrollments after invitation activation
+   * @param {Array<string>} subjectIds - Selected subject IDs
+   */
+  saveStudentEnrollments: async (subjectIds) => {
+    try {
+      const response = await api.post('/students/me/enrollments', { subjectIds })
+      return response.data
+    } catch (error) {
+      throw error.response?.data || { message: 'Failed to save subject enrollments' }
     }
   },
 }

@@ -9,7 +9,7 @@ const cors = require('cors');
 const morgan = require('morgan');
 const config = require('./config/environment');
 const { connectDatabase } = require('./config/database');
-const { seedSubjects } = require('./services/seederService');
+const { seedSubjects, seedCampusLookups } = require('./services/seederService');
 const { requestLogger, notFoundHandler, errorHandler } = require('./middleware/errorHandler');
 const logger = require('./utils/logger');
 
@@ -85,6 +85,7 @@ app.get('/api/version', (req, res) => {
 
 // Phase 2: Authentication routes
 const authRoutes = require('./routes/auth');
+
 app.use('/api/auth', authRoutes);
 
 // Phase 3: Dashboard, Users, Classes routes
@@ -92,32 +93,39 @@ const dashboardRoutes = require('./routes/dashboard');
 const usersRoutes = require('./routes/users');
 const classesRoutes = require('./routes/classes');
 const subjectsRoutes = require('./routes/subjects');
+const studentsRoutes = require('./routes/students');
 
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/classes', classesRoutes);
 app.use('/api/subjects', subjectsRoutes);
+app.use('/api/students', studentsRoutes);
 
 // Phase 4: Attendance routes
 const attendanceRoutes = require('./routes/attendance');
+
 app.use('/api/attendance', attendanceRoutes);
 
 // Phase 5: Videos routes
 const videosRoutes = require('./routes/videos');
+
 app.use('/api/videos', videosRoutes);
 
 // Phase 6: Events & Notifications routes
 const eventsRoutes = require('./routes/events');
 const notificationsRoutes = require('./routes/notifications');
+
 app.use('/api/events', eventsRoutes);
 app.use('/api/notifications', notificationsRoutes);
 
 // Phase 7: Payments routes
 const paymentsRoutes = require('./routes/payments');
+
 app.use('/api/payments', paymentsRoutes);
 
 // Phase 8: Analytics & Reporting routes
 const analyticsRoutes = require('./routes/analytics');
+
 app.use('/api/analytics', analyticsRoutes);
 
 /**
@@ -142,6 +150,7 @@ const startServer = async () => {
 
       // Seed default subjects if none exist
       try {
+        await seedCampusLookups();
         await seedSubjects();
       } catch (seedError) {
         logger.warn('Could not seed subjects on startup (may already exist)', { error: seedError.message });

@@ -29,6 +29,26 @@ import {
 import PageHeader from '@/components/Common/PageHeader'
 import PageSkeleton from '@/components/Common/PageSkeleton'
 
+const ChartTooltip = ({ active, payload, label }) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-surface-1 border border-border-app p-4 rounded-xl shadow-2xl backdrop-blur-md">
+        <p className="text-[10px] font-black text-text-muted uppercase tracking-widest mb-2 border-b border-white/5 pb-2">{label}</p>
+        {payload.map((entry, index) => (
+          <div key={index} className="flex items-center gap-3 mt-1.5">
+            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
+            <p className="text-sm font-bold text-text-primary">
+              {entry.name}: <span className="ml-1 text-primary">{entry.value}</span>
+            </p>
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  return null
+}
+
 const EventAnalyticsDashboard = () => {
   const dispatch = useDispatch()
   const { eventAnalytics, popularEvents, analyticsLoading, error } = useSelector(
@@ -72,25 +92,6 @@ const EventAnalyticsDashboard = () => {
         <p className="text-xs text-text-muted mt-2 max-w-md">{error}</p>
       </div>
     )
-  }
-
-  const CustomTooltip = ({ active, payload, label }) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-surface-1 border border-border-app p-4 rounded-xl shadow-2xl backdrop-blur-md">
-          <p className="text-[10px] font-black text-text-muted uppercase tracking-widest mb-2 border-b border-white/5 pb-2">{label}</p>
-          {payload.map((entry, index) => (
-            <div key={index} className="flex items-center gap-3 mt-1.5">
-              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
-              <p className="text-sm font-bold text-text-primary">
-                {entry.name}: <span className="ml-1 text-primary">{entry.value}</span>
-              </p>
-            </div>
-          ))}
-        </div>
-      )
-    }
-    return null
   }
 
   return (
@@ -170,7 +171,7 @@ const EventAnalyticsDashboard = () => {
                    tickLine={false} 
                    tick={{ fontSize: 9, fontWeight: 900, fill: CHART_COLORS.text }} 
                  />
-                 <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.02)' }} />
+                 <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(255,255,255,0.02)' }} />
                  <Bar dataKey="Attended" fill={CHART_COLORS.success} radius={[4, 4, 0, 0]} barSize={20} />
                  <Bar dataKey="No-Show" fill={CHART_COLORS.danger} radius={[4, 4, 0, 0]} barSize={20} />
                </BarChart>
@@ -195,7 +196,7 @@ const EventAnalyticsDashboard = () => {
                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="transparent" />
                    ))}
                  </Pie>
-                 <Tooltip content={<CustomTooltip />} />
+                 <Tooltip content={<ChartTooltip />} />
                </PieChart>
              </ResponsiveContainer>
              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">

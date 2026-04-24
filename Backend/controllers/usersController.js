@@ -5,10 +5,30 @@
  */
 
 const User = require('../models/User');
+const Department = require('../models/Department');
+const Semester = require('../models/Semester');
+const Section = require('../models/Section');
+const StudentProfile = require('../models/StudentProfile');
+const TeacherProfile = require('../models/TeacherProfile');
+const StudentSubjectEnrollment = require('../models/StudentSubjectEnrollment');
+const Class = require('../models/Class');
 const logger = require('../utils/logger');
 const { sendSuccess, sendError } = require('../utils/responses');
-const { validateUpdateProfile, extractValidationErrors } = require('../utils/validators');
+const { validateUpdateProfile, validateInviteUser, extractValidationErrors } = require('../utils/validators');
 const constants = require('../config/constants');
+
+const getOrCreateLookup = async (Model, query, payload) => {
+  const found = await Model.findOne(query);
+  if (found) {
+    return found;
+  }
+
+  const created = new Model(payload);
+  await created.save();
+  return created;
+};
+
+const normalizeLookupCode = (value) => value.trim().toUpperCase().replace(/\s+/g, '_');
 
 // ============================================
 // USER PROFILE ENDPOINTS
@@ -34,7 +54,7 @@ const getProfile = async (req, res, next) => {
         'User profile not found',
         constants.ERROR_CODES.NOT_FOUND,
         null,
-        constants.HTTP_STATUS.NOT_FOUND
+        constants.HTTP_STATUS.NOT_FOUND,
       );
     }
 
@@ -45,7 +65,7 @@ const getProfile = async (req, res, next) => {
         'User account is inactive',
         constants.ERROR_CODES.FORBIDDEN,
         null,
-        constants.HTTP_STATUS.FORBIDDEN
+        constants.HTTP_STATUS.FORBIDDEN,
       );
     }
 
@@ -57,9 +77,11 @@ const getProfile = async (req, res, next) => {
       email: user.email,
       phone: user.phone,
       role: user.role,
+      status: user.status,
       department: user.department,
       designation: user.designation,
       profilePicture: user.profilePicture,
+      activatedAt: user.activatedAt,
       emailVerified: user.emailVerified,
       isActive: user.isActive,
       lastLogin: user.lastLogin,
@@ -90,11 +112,11 @@ const updateProfile = async (req, res, next) => {
         'Validation failed',
         constants.ERROR_CODES.VALIDATION_ERROR,
         details,
-        constants.HTTP_STATUS.BAD_REQUEST
+        constants.HTTP_STATUS.BAD_REQUEST,
       );
     }
 
-    const { name, phone, department, designation, profilePicture } = value;
+    const { name, phone, profilePicture } = value;
 
     // Find and update user
     const user = await User.findById(req.user._id);
@@ -106,15 +128,13 @@ const updateProfile = async (req, res, next) => {
         'User not found',
         constants.ERROR_CODES.NOT_FOUND,
         null,
-        constants.HTTP_STATUS.NOT_FOUND
+        constants.HTTP_STATUS.NOT_FOUND,
       );
     }
 
     // Update fields
     if (name) user.name = name;
     if (phone) user.phone = phone;
-    if (department) user.department = department;
-    if (designation) user.designation = designation;
     if (profilePicture) user.profilePicture = profilePicture;
 
     user.updatedAt = new Date();
@@ -129,6 +149,7 @@ const updateProfile = async (req, res, next) => {
       email: user.email,
       phone: user.phone,
       role: user.role,
+      status: user.status,
       department: user.department,
       designation: user.designation,
       profilePicture: user.profilePicture,
@@ -156,19 +177,18 @@ const listUsers = async (req, res, next) => {
     logger.info('Listing users', { requestedBy: req.user._id, query: req.query });
 
     // Extract query parameters
-    const page = parseInt(req.query.page) || constants.PAGINATION_DEFAULTS.PAGE;
+    const page = parseInt(req.query.page, 10) || constants.PAGINATION_DEFAULTS.PAGE;
     const limit = Math.min(
-      parseInt(req.query.limit) || constants.PAGINATION_DEFAULTS.LIMIT,
-      constants.PAGINATION_DEFAULTS.MAX_LIMIT
+      parseInt(req.query.limit, 10) || constants.PAGINATION_DEFAULTS.LIMIT,
+      constants.PAGINATION_DEFAULTS.MAX_LIMIT,
     );
-    const role = req.query.role;
-    const search = req.query.search;
+    const { role } = req.query;
+    const { search } = req.query;
     const sortBy = req.query.sortBy || 'createdAt';
     const sortOrder = req.query.sortOrder === 'asc' ? 1 : -1;
 
     // Build filter
     const filter = {
-      isActive: true,
       deletedAt: null,
     };
 
@@ -199,7 +219,9 @@ const listUsers = async (req, res, next) => {
     // Get total count for pagination
     const total = await User.countDocuments(filter);
 
-    logger.info('Users listed successfully', { page, limit, total, count: users.length });
+    logger.info('Users listed successfully', {
+      page, limit, total, count: users.length,
+    });
 
     return sendSuccess(res, 'Users retrieved successfully', {
       users: users.map((user) => ({
@@ -208,6 +230,7 @@ const listUsers = async (req, res, next) => {
         email: user.email,
         phone: user.phone,
         role: user.role,
+        status: user.status,
         department: user.department,
         designation: user.designation,
         profilePicture: user.profilePicture,
@@ -251,7 +274,7 @@ const getUserById = async (req, res, next) => {
         'Unauthorized: Cannot access this user profile',
         constants.ERROR_CODES.FORBIDDEN,
         null,
-        constants.HTTP_STATUS.FORBIDDEN
+        constants.HTTP_STATUS.FORBIDDEN,
       );
     }
 
@@ -264,7 +287,7 @@ const getUserById = async (req, res, next) => {
         'User not found or inactive',
         constants.ERROR_CODES.NOT_FOUND,
         null,
-        constants.HTTP_STATUS.NOT_FOUND
+        constants.HTTP_STATUS.NOT_FOUND,
       );
     }
 
@@ -276,6 +299,7 @@ const getUserById = async (req, res, next) => {
       email: user.email,
       phone: user.phone,
       role: user.role,
+      status: user.status,
       department: user.department,
       designation: user.designation,
       profilePicture: user.profilePicture,
@@ -304,7 +328,9 @@ const getUserById = async (req, res, next) => {
 const updateUserByAdmin = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { name, email, phone, role, department, designation, isActive } = req.body;
+    const {
+      name, email, phone, department, designation, status, isActive,
+    } = req.body;
 
     logger.info('Admin updating user', { adminId: req.user._id, targetUserId: id });
 
@@ -317,7 +343,7 @@ const updateUserByAdmin = async (req, res, next) => {
         'User not found',
         constants.ERROR_CODES.NOT_FOUND,
         null,
-        constants.HTTP_STATUS.NOT_FOUND
+        constants.HTTP_STATUS.NOT_FOUND,
       );
     }
 
@@ -332,16 +358,28 @@ const updateUserByAdmin = async (req, res, next) => {
           'Email already in use',
           constants.ERROR_CODES.EMAIL_ALREADY_EXISTS,
           null,
-          constants.HTTP_STATUS.CONFLICT
+          constants.HTTP_STATUS.CONFLICT,
         );
       }
       user.email = email.toLowerCase();
     }
-    if (phone) user.phone = phone;
-    if (role && Object.values(constants.ROLES).includes(role)) user.role = role;
-    if (department) user.department = department;
-    if (designation) user.designation = designation;
-    if (typeof isActive === 'boolean') user.isActive = isActive;
+    if (phone !== undefined) user.phone = phone;
+    if (department !== undefined) user.department = department;
+    if (designation !== undefined) user.designation = designation;
+    if (status && Object.values(constants.USER_STATUSES).includes(status)) {
+      user.status = status;
+      user.isActive = status === constants.USER_STATUSES.ACTIVE;
+      if (status === constants.USER_STATUSES.ACTIVE && !user.activatedAt) {
+        user.activatedAt = new Date();
+      }
+    }
+    if (typeof isActive === 'boolean') {
+      user.isActive = isActive;
+      user.status = isActive ? constants.USER_STATUSES.ACTIVE : constants.USER_STATUSES.INACTIVE;
+      if (isActive && !user.activatedAt) {
+        user.activatedAt = new Date();
+      }
+    }
 
     user.updatedAt = new Date();
     await user.save();
@@ -354,6 +392,7 @@ const updateUserByAdmin = async (req, res, next) => {
       email: user.email,
       phone: user.phone,
       role: user.role,
+      status: user.status,
       department: user.department,
       designation: user.designation,
       isActive: user.isActive,
@@ -384,7 +423,7 @@ const deleteUserByAdmin = async (req, res, next) => {
         'Cannot delete your own account',
         constants.ERROR_CODES.FORBIDDEN,
         null,
-        constants.HTTP_STATUS.FORBIDDEN
+        constants.HTTP_STATUS.FORBIDDEN,
       );
     }
 
@@ -397,12 +436,30 @@ const deleteUserByAdmin = async (req, res, next) => {
         'User not found',
         constants.ERROR_CODES.NOT_FOUND,
         null,
-        constants.HTTP_STATUS.NOT_FOUND
+        constants.HTTP_STATUS.NOT_FOUND,
       );
     }
 
-    // Soft delete
+    if (user.role === constants.ROLES.STUDENT) {
+      await Promise.all([
+        StudentProfile.deleteOne({ userId: user._id }),
+        StudentSubjectEnrollment.deleteMany({ studentId: user._id }),
+        Class.updateMany({ students: user._id }, { $pull: { students: user._id } }),
+      ]);
+    }
+
+    if (user.role === constants.ROLES.TEACHER) {
+      await Promise.all([
+        TeacherProfile.deleteOne({ userId: user._id }),
+        Class.updateMany(
+          { teacher: user._id },
+          { $set: { isActive: false, status: 'archived', deletedAt: new Date() } },
+        ),
+      ]);
+    }
+
     user.isActive = false;
+    user.status = constants.USER_STATUSES.INACTIVE;
     user.deletedAt = new Date();
     await user.save();
 
@@ -418,11 +475,175 @@ const deleteUserByAdmin = async (req, res, next) => {
   }
 };
 
+/**
+ * Create an invited user profile (Admin only)
+ * POST /users/admin/invite
+ */
+const createUserByAdmin = async (req, res, next) => {
+  try {
+    const { error, value } = validateInviteUser(req.body);
+    if (error) {
+      const details = extractValidationErrors(error);
+      return sendError(
+        res,
+        'Validation failed',
+        constants.ERROR_CODES.VALIDATION_ERROR,
+        details,
+        constants.HTTP_STATUS.BAD_REQUEST,
+      );
+    }
+
+    const {
+      name,
+      email,
+      phone,
+      role,
+      department,
+      designation,
+      employeeId,
+      rollNo,
+      semester,
+      semesterId,
+      section,
+      sectionId,
+      classId,
+      admissionYear,
+      photo,
+      subjectIds,
+    } = value;
+
+    const existingUser = await User.findOne({ email: email.toLowerCase() });
+    if (existingUser && existingUser.deletedAt === null) {
+      return sendError(
+        res,
+        'Email already exists',
+        constants.ERROR_CODES.CONFLICT,
+        { field: 'email', message: 'This email is already in use' },
+        constants.HTTP_STATUS.CONFLICT,
+      );
+    }
+
+    let departmentDoc = null;
+    if (department) {
+      departmentDoc = await getOrCreateLookup(
+        Department,
+        {
+          $or: [
+            { name: new RegExp(`^${department}$`, 'i') },
+            { code: normalizeLookupCode(department) },
+          ],
+        },
+        { name: department, code: normalizeLookupCode(department) },
+      );
+    }
+
+    let semesterDoc = null;
+    if (semesterId) {
+      semesterDoc = await Semester.findById(semesterId);
+    } else if (semester) {
+      semesterDoc = await getOrCreateLookup(
+        Semester,
+        {
+          $or: [
+            { name: new RegExp(`^${semester}$`, 'i') },
+            { code: normalizeLookupCode(semester) },
+          ],
+        },
+        {
+          name: semester,
+          code: normalizeLookupCode(semester),
+          order: Number.parseInt(semester, 10) || 1,
+        },
+      );
+    }
+
+    let sectionDoc = null;
+    if (sectionId) {
+      sectionDoc = await Section.findById(sectionId);
+    } else if (section) {
+      sectionDoc = await getOrCreateLookup(
+        Section,
+        {
+          $or: [
+            { name: new RegExp(`^${section}$`, 'i') },
+            { code: normalizeLookupCode(section) },
+          ],
+        },
+        { name: section, code: normalizeLookupCode(section) },
+      );
+    }
+
+    const user = new User({
+      name,
+      email: email.toLowerCase(),
+      role,
+      phone,
+      department: departmentDoc?.name || department || '',
+      designation: designation || '',
+      status: constants.USER_STATUSES.INVITE_PENDING,
+      isActive: false,
+      emailVerified: false,
+      invitedBy: req.user._id,
+      profilePicture: photo || '',
+      subjects: role === constants.ROLES.TEACHER ? subjectIds : [],
+    });
+
+    await user.save();
+
+    if (role === constants.ROLES.STUDENT) {
+      const studentProfile = new StudentProfile({
+        userId: user._id,
+        rollNo,
+        departmentId: departmentDoc?._id,
+        semesterId: semesterDoc?._id || semesterId || null,
+        sectionId: sectionDoc?._id || sectionId || null,
+        classId: classId || null,
+        admissionYear,
+        phone: phone || '',
+        photo: photo || '',
+      });
+      await studentProfile.save();
+    }
+
+    if (role === constants.ROLES.TEACHER) {
+      const teacherProfile = new TeacherProfile({
+        userId: user._id,
+        employeeId,
+        departmentId: departmentDoc?._id,
+        designation,
+        phone: phone || '',
+        photo: photo || '',
+      });
+      await teacherProfile.save();
+    }
+
+    return sendSuccess(
+      res,
+      {
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          status: user.status,
+          department: user.department,
+        },
+      },
+      'Invited user created successfully',
+      constants.HTTP_STATUS.CREATED,
+    );
+  } catch (error) {
+    logger.error('Error creating invited user', { error: error.message });
+    next(error);
+  }
+};
+
 module.exports = {
   getProfile,
   updateProfile,
   listUsers,
   getUserById,
+  createUserByAdmin,
   updateUserByAdmin,
   deleteUserByAdmin,
 };

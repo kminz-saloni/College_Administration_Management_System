@@ -26,32 +26,12 @@ const USERNAME_REGEX = /^[a-zA-Z0-9_]{3,20}$/;
  */
 const validateRegistration = (data) => {
   const schema = Joi.object({
-    name: Joi.string()
-      .trim()
-      .min(2)
-      .max(50)
-      .required()
-      .messages({
-        'string.min': 'Name must be at least 2 characters',
-        'string.max': 'Name cannot exceed 50 characters',
-        'any.required': 'Name is required',
-      }),
     email: Joi.string()
       .email()
       .lowercase()
-      .custom((value, helpers) => {
-        const { role } = helpers.state.ancestors[0] || {};
-
-        if (role === 'teacher' && !value.endsWith('@fot.college.edu')) {
-          return helpers.error('any.invalid');
-        }
-
-        return value;
-      })
       .required()
       .messages({
         'string.email': 'Invalid email format',
-        'any.invalid': 'Teacher email must be a @fot.college.edu address',
         'any.required': 'Email is required',
       }),
     password: Joi.string()
@@ -68,31 +48,44 @@ const validateRegistration = (data) => {
         'any.only': 'Passwords do not match',
         'any.required': 'Password confirmation is required',
       }),
-    role: Joi.string()
-      .valid('teacher', 'student')
-      .required()
-      .messages({
-        'any.only': 'Role must be teacher or student',
-        'any.required': 'Role is required',
-      }),
-    phone: Joi.string()
-      .regex(PHONE_REGEX)
-      .optional()
-      .messages({
-        'string.pattern.base': 'Phone must be 10 digits',
-      }),
-    subjects: Joi.when('role', {
-      is: 'teacher',
-      then: Joi.array()
-        .items(Joi.string().required())
-        .min(1)
-        .required()
-        .messages({
-          'array.min': 'Teachers must select at least one subject',
-          'any.required': 'Subjects are required for teachers',
-        }),
-      otherwise: Joi.forbidden(),
-    }),
+    name: Joi.string().trim().min(2).max(50)
+      .optional(),
+    subjectIds: Joi.array().items(Joi.string().regex(/^[0-9a-fA-F]{24}$/)).optional(),
+  });
+
+  return schema.validate(data, { abortEarly: false });
+};
+
+const validateInviteUser = (data) => {
+  const schema = Joi.object({
+    name: Joi.string().trim().min(2).max(100)
+      .required(),
+    email: Joi.string().email().lowercase().required(),
+    phone: Joi.string().regex(PHONE_REGEX).optional().allow('', null),
+    role: Joi.string().valid('teacher', 'student').required(),
+    department: Joi.string().trim().optional().allow('', null),
+    designation: Joi.string().trim().optional().allow('', null),
+    employeeId: Joi.string().trim().optional().allow('', null),
+    rollNo: Joi.string().trim().optional().allow('', null),
+    semester: Joi.string().trim().optional().allow('', null),
+    section: Joi.string().trim().optional().allow('', null),
+    className: Joi.string().trim().optional().allow('', null),
+    semesterId: Joi.string().regex(/^[0-9a-fA-F]{24}$/).optional().allow('', null),
+    sectionId: Joi.string().regex(/^[0-9a-fA-F]{24}$/).optional().allow('', null),
+    classId: Joi.string().regex(/^[0-9a-fA-F]{24}$/).optional().allow('', null),
+    admissionYear: Joi.string().trim().optional().allow('', null),
+    photo: Joi.string().uri().optional().allow('', null),
+    subjectIds: Joi.array().items(Joi.string().regex(/^[0-9a-fA-F]{24}$/)).optional().default([]),
+  });
+
+  return schema.validate(data, { abortEarly: false });
+};
+
+const validateActivation = (data) => {
+  const schema = Joi.object({
+    email: Joi.string().email().lowercase().required(),
+    password: Joi.string().regex(PASSWORD_REGEX).required(),
+    confirmPassword: Joi.string().valid(Joi.ref('password')).required(),
   });
 
   return schema.validate(data, { abortEarly: false });
@@ -230,10 +223,13 @@ const validateRefreshToken = (data) => {
 
 const validateEvent = (data) => {
   const schema = Joi.object({
-    title: Joi.string().trim().min(2).max(150).required(),
-    description: Joi.string().trim().min(10).max(1200).required(),
+    title: Joi.string().trim().min(2).max(150)
+      .required(),
+    description: Joi.string().trim().min(10).max(1200)
+      .required(),
     eventType: Joi.string().trim().max(50).optional(),
-    location: Joi.string().trim().min(2).max(200).required(),
+    location: Joi.string().trim().min(2).max(200)
+      .required(),
     startAt: Joi.date().greater('now').required(),
     endAt: Joi.date().greater(Joi.ref('startAt')).required(),
     coverImageUrl: Joi.string().uri().optional().allow(null, ''),
@@ -244,10 +240,13 @@ const validateEvent = (data) => {
 
 const validateEventUpdate = (data) => {
   const schema = Joi.object({
-    title: Joi.string().trim().min(2).max(150).optional(),
-    description: Joi.string().trim().min(10).max(1200).optional(),
+    title: Joi.string().trim().min(2).max(150)
+      .optional(),
+    description: Joi.string().trim().min(10).max(1200)
+      .optional(),
     eventType: Joi.string().trim().max(50).optional(),
-    location: Joi.string().trim().min(2).max(200).optional(),
+    location: Joi.string().trim().min(2).max(200)
+      .optional(),
     startAt: Joi.date().greater('now').optional(),
     endAt: Joi.date().greater(Joi.ref('startAt')).optional(),
     coverImageUrl: Joi.string().uri().optional().allow(null, ''),
@@ -261,7 +260,8 @@ const validateEventRSVP = (data) => {
     status: Joi.string()
       .valid('yes', 'no', 'maybe')
       .required(),
-    notes: Joi.string().trim().max(300).optional().allow(null, ''),
+    notes: Joi.string().trim().max(300).optional()
+      .allow(null, ''),
   });
 
   return schema.validate(data, { abortEarly: false });
@@ -273,14 +273,22 @@ const validateEventRSVP = (data) => {
 
 const validateClass = (data) => {
   const schema = Joi.object({
-    name: Joi.string().trim().min(2).max(100).required(),
-    subject: Joi.string().trim().min(2).max(100).required(),
-    description: Joi.string().trim().max(500).optional().allow(null, ''),
+    name: Joi.string().trim().min(2).max(100)
+      .required(),
+    classCode: Joi.string().trim().min(2).max(50)
+      .optional()
+      .allow('', null),
+    subjectId: Joi.string().regex(/^[0-9a-fA-F]{24}$/).required(),
+    teacherId: Joi.string().regex(/^[0-9a-fA-F]{24}$/).optional().allow('', null),
+    departmentId: Joi.string().regex(/^[0-9a-fA-F]{24}$/).optional().allow('', null),
+    semesterId: Joi.string().regex(/^[0-9a-fA-F]{24}$/).optional().allow('', null),
+    sectionId: Joi.string().regex(/^[0-9a-fA-F]{24}$/).optional().allow('', null),
+    description: Joi.string().trim().max(500).optional()
+      .allow(null, ''),
     schedule: Joi.object().optional(),
     academicYear: Joi.string().trim().optional().allow(null, ''),
     semester: Joi.number().optional().allow(null, ''),
     capacity: Joi.number().optional().default(50),
-    teacherId: Joi.string().optional(), // For admin to assign
   });
 
   return schema.validate(data, { abortEarly: false });
@@ -288,9 +296,18 @@ const validateClass = (data) => {
 
 const validateClassUpdate = (data) => {
   const schema = Joi.object({
-    name: Joi.string().trim().min(2).max(100).optional(),
-    subject: Joi.string().trim().min(2).max(100).optional(),
-    description: Joi.string().trim().max(500).optional().allow(null, ''),
+    name: Joi.string().trim().min(2).max(100)
+      .optional(),
+    classCode: Joi.string().trim().min(2).max(50)
+      .optional()
+      .allow('', null),
+    subjectId: Joi.string().regex(/^[0-9a-fA-F]{24}$/).optional().allow('', null),
+    teacherId: Joi.string().regex(/^[0-9a-fA-F]{24}$/).optional().allow('', null),
+    departmentId: Joi.string().regex(/^[0-9a-fA-F]{24}$/).optional().allow('', null),
+    semesterId: Joi.string().regex(/^[0-9a-fA-F]{24}$/).optional().allow('', null),
+    sectionId: Joi.string().regex(/^[0-9a-fA-F]{24}$/).optional().allow('', null),
+    description: Joi.string().trim().max(500).optional()
+      .allow(null, ''),
     schedule: Joi.object().optional(),
     academicYear: Joi.string().trim().optional().allow(null, ''),
     semester: Joi.number().optional().allow(null, ''),
@@ -309,9 +326,7 @@ const validateClassUpdate = (data) => {
  * @param {string} email - Email to validate
  * @returns {boolean}
  */
-const isValidEmail = (email) => {
-  return EMAIL_REGEX.test(email);
-};
+const isValidEmail = (email) => EMAIL_REGEX.test(email);
 
 /**
  * Check if password meets strength requirements
@@ -409,7 +424,7 @@ const validateAttendanceMark = (data) => {
             .messages({
               'string.max': 'Notes cannot exceed 200 characters',
             }),
-        })
+        }),
       )
       .min(1)
       .required()
@@ -454,7 +469,7 @@ const validateAttendanceUpdate = (data) => {
             .messages({
               'string.max': 'Notes cannot exceed 200 characters',
             }),
-        })
+        }),
       )
       .min(1)
       .required()
@@ -467,7 +482,6 @@ const validateAttendanceUpdate = (data) => {
   return schema.validate(data, { abortEarly: false });
 };
 
-
 /**
  * Validate video upload input
  * @param {Object} data - Video upload metadata
@@ -475,8 +489,10 @@ const validateAttendanceUpdate = (data) => {
  */
 const validateVideoUpload = (data) => {
   const schema = Joi.object({
-    title: Joi.string().trim().min(3).max(100).required(),
-    description: Joi.string().trim().max(1000).optional().allow(''),
+    title: Joi.string().trim().min(3).max(100)
+      .required(),
+    description: Joi.string().trim().max(1000).optional()
+      .allow(''),
     subject: Joi.string().trim().required(),
     classId: Joi.string()
       .regex(/^[0-9a-fA-F]{24}$/)
@@ -499,8 +515,10 @@ const validateVideoUpload = (data) => {
  */
 const validateVideoUpdate = (data) => {
   const schema = Joi.object({
-    title: Joi.string().trim().min(3).max(100).optional(),
-    description: Joi.string().trim().max(1000).optional().allow(''),
+    title: Joi.string().trim().min(3).max(100)
+      .optional(),
+    description: Joi.string().trim().max(1000).optional()
+      .allow(''),
     subject: Joi.string().trim().optional(),
     duration: Joi.number().min(0).optional().allow(null),
     isPublished: Joi.boolean().optional(),
@@ -521,6 +539,8 @@ module.exports = {
   validateResetPassword,
   validateChangePassword,
   validateRefreshToken,
+  validateInviteUser,
+  validateActivation,
   validateAttendanceMark,
   validateAttendanceUpdate,
   validateEvent,

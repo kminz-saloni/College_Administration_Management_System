@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { api } from '@/services'
-import { CheckCircleIcon, XCircleIcon, ClockIcon, MagnifyingGlassIcon, Plus } from 'lucide-react'
+import { CheckCircleIcon, XCircleIcon, ClockIcon, Search, Plus } from 'lucide-react'
 import { fetchClasses } from '@/store/slices/dashboardSlice'
 import toast from 'react-hot-toast'
 
@@ -138,7 +138,7 @@ const StudentListWithStatus = () => {
         <>
           <div className="mb-6">
             <div className="relative">
-              <MagnifyingGlassIcon className="h-4 w-4 absolute left-3 top-3 text-gray-400" />
+              <Search className="h-4 w-4 absolute left-3 top-3 text-gray-400" />
               <input
                 type="text"
                 placeholder="Search students..."

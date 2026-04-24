@@ -10,6 +10,13 @@ const ROLES = {
   STUDENT: 'student',
 };
 
+const USER_STATUSES = {
+  INVITE_PENDING: 'invite_pending',
+  ACTIVE: 'active',
+  INACTIVE: 'inactive',
+  SUSPENDED: 'suspended',
+};
+
 const ROLE_PERMISSIONS = {
   admin: ['read', 'write', 'delete', 'manage_users', 'manage_system'],
   teacher: ['read', 'write', 'manage_class', 'upload_videos', 'mark_attendance'],
@@ -112,6 +119,7 @@ const JWT_SETTINGS = {
 
 module.exports = {
   ROLES,
+  USER_STATUSES,
   ROLE_PERMISSIONS,
   ATTENDANCE_STATUS,
   PAYMENT_STATUS,

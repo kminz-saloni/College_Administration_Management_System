@@ -192,9 +192,9 @@ const LoginPage = () => {
 
         {/* Register Link */}
         <p className="text-center text-sm text-text-muted">
-          Don't have an account?{' '}
-          <Link to="/register" className="font-medium text-primary hover:text-primary-hover transition-colors">
-            Create account
+          Have an invitation?{' '}
+          <Link to="/activate" className="font-medium text-primary hover:text-primary-hover transition-colors">
+            Activate account
           </Link>
         </p>
       </form>

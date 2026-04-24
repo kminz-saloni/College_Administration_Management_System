@@ -7,7 +7,7 @@
 const User = require('../models/User');
 const Class = require('../models/Class');
 const logger = require('../utils/logger');
-const { sendSuccess, sendError } = require('../utils/responses');
+const { sendSuccess } = require('../utils/responses');
 const constants = require('../config/constants');
 
 // ============================================
@@ -330,7 +330,7 @@ const getStudentDashboard = async (req, res, next) => {
  */
 const getDashboardClasses = async (req, res, next) => {
   try {
-    const role = req.user.role;
+    const { role } = req.user;
 
     let classes;
     if (role === constants.ROLES.STUDENT) {
@@ -386,10 +386,12 @@ const getDashboardClasses = async (req, res, next) => {
  */
 const getDashboardUsers = async (req, res, next) => {
   try {
-    const { page = 1, limit = 20, role, search } = req.query;
+    const {
+      page = 1, limit = 20, role, search,
+    } = req.query;
     const skip = (page - 1) * limit;
 
-    const filter = { isActive: true, deletedAt: null };
+    const filter = { deletedAt: null };
 
     // For teachers, only show students in their classes
     if (req.user.role === constants.ROLES.TEACHER) {
@@ -397,7 +399,7 @@ const getDashboardUsers = async (req, res, next) => {
       const teacherClasses = await Class.find({ teacher: req.user._id })
         .select('students')
         .lean();
-      
+
       const studentIds = [];
       teacherClasses.forEach((cls) => {
         if (cls.students && Array.isArray(cls.students)) {
@@ -413,9 +415,10 @@ const getDashboardUsers = async (req, res, next) => {
         // If teacher has no classes, return empty result
         filter._id = { $in: [] };
       }
-    } else {
-      // Admin can filter by role if provided
-      if (role) filter.role = role;
+    }
+
+    if (req.user.role === constants.ROLES.ADMIN && role) {
+      filter.role = role;
     }
 
     if (search) {
@@ -427,7 +430,7 @@ const getDashboardUsers = async (req, res, next) => {
 
     const [users, total] = await Promise.all([
       User.find(filter)
-        .select('name email role department designation lastLogin createdAt')
+        .select('name email role status department designation lastLogin createdAt isActive')
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(Number(limit))
@@ -442,11 +445,12 @@ const getDashboardUsers = async (req, res, next) => {
         name: u.name,
         email: u.email,
         role: u.role,
+        status: u.status,
         department: u.department,
         designation: u.designation,
         lastLogin: u.lastLogin,
         joinedAt: u.createdAt,
-        isActive: true,
+        isActive: u.isActive,
       })),
       total,
       page: Number(page),

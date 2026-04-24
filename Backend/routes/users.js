@@ -8,7 +8,6 @@ const express = require('express');
 const usersController = require('../controllers/usersController');
 const { authMiddleware } = require('../middleware/auth');
 const { roleGuard } = require('../middleware/roleGuard');
-const logger = require('../utils/logger');
 
 const router = express.Router();
 
@@ -80,6 +79,13 @@ router.get('/:id', usersController.getUserById);
  * @access Admin only
  */
 router.put('/admin/:id', roleGuard(['admin']), usersController.updateUserByAdmin);
+
+/**
+ * POST /users/admin/invite
+ * Create an invited user profile (Admin only)
+ * @access Admin only
+ */
+router.post('/admin/invite', roleGuard(['admin']), usersController.createUserByAdmin);
 
 /**
  * DELETE /users/admin/:id

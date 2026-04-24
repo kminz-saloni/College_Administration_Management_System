@@ -38,6 +38,11 @@ const StudentVideoLibrary = () => {
     setIsPlayerOpen(true)
   }
 
+  const getPreviewProgress = (video) => {
+    const rawProgress = Number(video.viewCount || 0) % 100
+    return Math.max(12, rawProgress)
+  }
+
   if (loading && videos.length === 0) return <PageSkeleton />
 
   return (
@@ -180,7 +185,7 @@ const StudentVideoLibrary = () => {
                   
                   {/* Progress bar simulation for "watched" effect */}
                   <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/20">
-                     <div className="h-full bg-primary" style={{ width: `${Math.random() * 100}%` }} />
+                    <div className="h-full bg-primary" style={{ width: `${getPreviewProgress(video)}%` }} />
                   </div>
 
                   <div className="absolute top-3 left-3 flex gap-2">

@@ -5,8 +5,6 @@
  */
 
 const mongoose = require('mongoose');
-const constants = require('../config/constants');
-
 // ============================================
 // CLASS SCHEMA DEFINITION
 // ============================================
@@ -20,6 +18,21 @@ const classSchema = new mongoose.Schema(
       trim: true,
       minlength: 2,
       maxlength: 100,
+      index: true,
+    },
+
+    classCode: {
+      type: String,
+      trim: true,
+      unique: true,
+      sparse: true,
+      index: true,
+    },
+
+    subjectId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Subject',
+      required: true,
       index: true,
     },
 
@@ -43,6 +56,27 @@ const classSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: true,
+      index: true,
+    },
+
+    departmentId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Department',
+      default: null,
+      index: true,
+    },
+
+    semesterId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Semester',
+      default: null,
+      index: true,
+    },
+
+    sectionId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Section',
+      default: null,
       index: true,
     },
 
@@ -93,6 +127,13 @@ const classSchema = new mongoose.Schema(
       index: true,
     },
 
+    status: {
+      type: String,
+      enum: ['active', 'archived'],
+      default: 'active',
+      index: true,
+    },
+
     academicYear: {
       type: String,
       optional: true, // Format: "2025-2026"
@@ -135,7 +176,7 @@ const classSchema = new mongoose.Schema(
   {
     timestamps: true,
     collection: 'classes',
-  }
+  },
 );
 
 // ============================================
@@ -144,6 +185,21 @@ const classSchema = new mongoose.Schema(
 
 // Compound index for teacher + subject queries
 classSchema.index({ teacher: 1, subject: 1 });
+
+classSchema.index({ classCode: 1 }, { unique: true, sparse: true });
+classSchema.index(
+  {
+    teacher: 1,
+    subjectId: 1,
+    semesterId: 1,
+    sectionId: 1,
+    academicYear: 1,
+  },
+  {
+    unique: true,
+    sparse: true,
+  },
+);
 
 // Index for active classes
 classSchema.index({ isActive: 1, createdAt: -1 });

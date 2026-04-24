@@ -4,11 +4,20 @@
  */
 
 const User = require('../models/User');
+const Subject = require('../models/Subject');
 const AuthService = require('../services/authService');
 const EmailService = require('../services/emailService');
 const logger = require('../utils/logger');
 const { sendSuccess, sendError } = require('../utils/responses');
-const { validateRegistration, validateLogin, validateForgotPassword, validateResetPassword, validateChangePassword, validateRefreshToken, extractValidationErrors } = require('../utils/validators');
+const {
+  validateRegistration,
+  validateLogin,
+  validateForgotPassword,
+  validateResetPassword,
+  validateChangePassword,
+  validateRefreshToken,
+  extractValidationErrors,
+} = require('../utils/validators');
 const constants = require('../config/constants');
 
 // ============================================
@@ -23,7 +32,7 @@ const constants = require('../config/constants');
  */
 const register = async (req, res, next) => {
   try {
-    logger.info('User registration attempt', { email: req.body.email });
+    logger.info('Account activation attempt', { email: req.body.email });
 
     // Validate input
     const { error, value } = validateRegistration(req.body);
@@ -34,81 +43,84 @@ const register = async (req, res, next) => {
         'Validation failed',
         constants.ERROR_CODES.VALIDATION_ERROR,
         details,
-        constants.HTTP_STATUS.BAD_REQUEST
+        constants.HTTP_STATUS.BAD_REQUEST,
       );
     }
 
-    const { name, email, password, role, phone } = value;
+    const { email, password } = value;
 
-    // Public signup must never create admin accounts.
-    if (role === constants.ROLES.ADMIN) {
+    const user = await User.findOne({ email: email.toLowerCase() });
+
+    if (!user) {
       return sendError(
         res,
-        'Admin accounts can only be created through database seeding.',
-        constants.ERROR_CODES.FORBIDDEN,
-        { field: 'role', message: 'Admin role is not allowed in public registration' },
-        constants.HTTP_STATUS.FORBIDDEN
+        'No pending invitation found for this email',
+        constants.ERROR_CODES.NOT_FOUND,
+        { field: 'email', message: 'Create the account from the admin panel first' },
+        constants.HTTP_STATUS.NOT_FOUND,
       );
     }
 
-    // Check if email already exists
-    const existingUser = await User.findByEmail(email);
-    if (existingUser) {
-      logger.warn('Registration failed: email already exists', { email });
+    if (user.status !== constants.USER_STATUSES.INVITE_PENDING) {
       return sendError(
         res,
-        'Email already registered',
-        constants.ERROR_CODES.EMAIL_ALREADY_EXISTS,
-        { field: 'email', message: 'This email is already registered' },
-        constants.HTTP_STATUS.CONFLICT
+        'Account is already active',
+        constants.ERROR_CODES.CONFLICT,
+        { field: 'email', message: 'Use login instead of activation' },
+        constants.HTTP_STATUS.CONFLICT,
       );
     }
 
-    // Hash password
-    const hashedPassword = await AuthService.hashPassword(password);
-
-    // Create user object
-    const userData = {
-      name,
-      email,
-      password: hashedPassword,
-      role,
-      phone,
-      isActive: true,
-      emailVerified: false,
-    };
-
-    // Add subjects for teachers
-    if (role === constants.ROLES.TEACHER && value.subjects) {
-      userData.subjects = value.subjects;
-    }
-
-    const user = new User(userData);
-
+    user.password = await AuthService.hashPassword(password);
+    user.markActive();
+    user.emailVerified = true;
     await user.save();
 
-    logger.info('User registered successfully', { userId: user._id, email });
+    const tokenPayload = {
+      _id: user._id,
+      email: user.email,
+      role: user.role,
+    };
+    const { accessToken, refreshToken } = AuthService.generateTokens(tokenPayload);
 
-    // Generate JWT token for auto-login
-    const token = AuthService.generateToken(user);
+    let eligibleSubjects = [];
+    if (user.role === constants.ROLES.STUDENT) {
+      eligibleSubjects = await Subject.find({ isActive: true, deletedAt: null })
+        .select('_id name code department description')
+        .sort({ name: 1 })
+        .lean();
+    }
 
-    // Send success response with token
     return sendSuccess(
       res,
       {
+        accessToken,
+        refreshToken,
+        user: {
+          _id: user._id,
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          phone: user.phone,
+          status: user.status,
+          activatedAt: user.activatedAt,
+        },
+        needsSubjectSelection: user.role === constants.ROLES.STUDENT,
+        eligibleSubjects,
         userId: user._id,
         email: user.email,
         name: user.name,
         role: user.role,
         subjects: user.subjects || [],
-        token,
-        message: 'Account created successfully!',
+        token: accessToken,
+        message: user.role === constants.ROLES.STUDENT ? 'Account activated. Select your subjects next.' : 'Account activated successfully!',
       },
-      'User registered successfully',
-      constants.HTTP_STATUS.CREATED
+      'Account activated successfully',
+      constants.HTTP_STATUS.CREATED,
     );
   } catch (err) {
-    logger.error('Registration error', { error: err.message });
+    logger.error('Activation error', { error: err.message });
     next(err);
   }
 };
@@ -136,7 +148,7 @@ const login = async (req, res, next) => {
         'Validation failed',
         constants.ERROR_CODES.VALIDATION_ERROR,
         details,
-        constants.HTTP_STATUS.BAD_REQUEST
+        constants.HTTP_STATUS.BAD_REQUEST,
       );
     }
 
@@ -144,14 +156,36 @@ const login = async (req, res, next) => {
 
     // Find user by email (with password field)
     const user = await User.findByEmailWithPassword(email);
-    if (!user || !user.isActive) {
-      logger.warn('Login failed: user not found or inactive', { email });
+    if (!user) {
+      logger.warn('Login failed: user not found', { email });
       return sendError(
         res,
         'Invalid email or password',
         constants.ERROR_CODES.INVALID_CREDENTIALS,
         null,
-        constants.HTTP_STATUS.UNAUTHORIZED
+        constants.HTTP_STATUS.UNAUTHORIZED,
+      );
+    }
+
+    if (user.status === constants.USER_STATUSES.INVITE_PENDING) {
+      logger.warn('Login blocked: account pending activation', { userId: user._id });
+      return sendError(
+        res,
+        'Account is pending activation. Please activate your invitation first.',
+        constants.ERROR_CODES.FORBIDDEN,
+        { field: 'status', message: 'invite_pending' },
+        constants.HTTP_STATUS.FORBIDDEN,
+      );
+    }
+
+    if (!user.isActive || user.status !== constants.USER_STATUSES.ACTIVE) {
+      logger.warn('Login failed: user inactive', { email, userId: user._id });
+      return sendError(
+        res,
+        'Account is inactive',
+        constants.ERROR_CODES.FORBIDDEN,
+        null,
+        constants.HTTP_STATUS.FORBIDDEN,
       );
     }
 
@@ -163,7 +197,7 @@ const login = async (req, res, next) => {
         'Account locked due to too many failed login attempts. Try again in 30 minutes.',
         constants.ERROR_CODES.ACCOUNT_LOCKED,
         null,
-        constants.HTTP_STATUS.FORBIDDEN
+        constants.HTTP_STATUS.FORBIDDEN,
       );
     }
 
@@ -177,7 +211,7 @@ const login = async (req, res, next) => {
         'Invalid email or password',
         constants.ERROR_CODES.INVALID_CREDENTIALS,
         null,
-        constants.HTTP_STATUS.UNAUTHORIZED
+        constants.HTTP_STATUS.UNAUTHORIZED,
       );
     }
 
@@ -208,10 +242,12 @@ const login = async (req, res, next) => {
           email: user.email,
           role: user.role,
           phone: user.phone,
+          status: user.status,
+          subjects: user.subjects || [],
         },
       },
       'Login successful',
-      constants.HTTP_STATUS.OK
+      constants.HTTP_STATUS.OK,
     );
   } catch (err) {
     logger.error('Login error', { error: err.message });
@@ -242,7 +278,7 @@ const logout = async (req, res, next) => {
       res,
       { message: 'Please delete tokens from client storage' },
       'Logout successful',
-      constants.HTTP_STATUS.OK
+      constants.HTTP_STATUS.OK,
     );
   } catch (err) {
     logger.error('Logout error', { error: err.message });
@@ -273,7 +309,7 @@ const refreshToken = async (req, res, next) => {
         'Validation failed',
         constants.ERROR_CODES.VALIDATION_ERROR,
         details,
-        constants.HTTP_STATUS.BAD_REQUEST
+        constants.HTTP_STATUS.BAD_REQUEST,
       );
     }
 
@@ -290,7 +326,7 @@ const refreshToken = async (req, res, next) => {
         'Invalid or expired refresh token',
         constants.ERROR_CODES.INVALID_TOKEN,
         null,
-        constants.HTTP_STATUS.UNAUTHORIZED
+        constants.HTTP_STATUS.UNAUTHORIZED,
       );
     }
 
@@ -305,7 +341,7 @@ const refreshToken = async (req, res, next) => {
         'User not found',
         constants.ERROR_CODES.USER_NOT_FOUND,
         null,
-        constants.HTTP_STATUS.NOT_FOUND
+        constants.HTTP_STATUS.NOT_FOUND,
       );
     }
 
@@ -322,7 +358,7 @@ const refreshToken = async (req, res, next) => {
       res,
       { accessToken: newAccessToken },
       'Token refreshed successfully',
-      constants.HTTP_STATUS.OK
+      constants.HTTP_STATUS.OK,
     );
   } catch (err) {
     logger.error('Token refresh error', { error: err.message });
@@ -351,7 +387,7 @@ const verifyToken = async (req, res, next) => {
         'User not found',
         constants.ERROR_CODES.USER_NOT_FOUND,
         null,
-        constants.HTTP_STATUS.NOT_FOUND
+        constants.HTTP_STATUS.NOT_FOUND,
       );
     }
 
@@ -369,7 +405,7 @@ const verifyToken = async (req, res, next) => {
         },
       },
       'Token is valid',
-      constants.HTTP_STATUS.OK
+      constants.HTTP_STATUS.OK,
     );
   } catch (err) {
     logger.error('Token verification error', { error: err.message });
@@ -400,7 +436,7 @@ const forgotPassword = async (req, res, next) => {
         'Validation failed',
         constants.ERROR_CODES.VALIDATION_ERROR,
         details,
-        constants.HTTP_STATUS.BAD_REQUEST
+        constants.HTTP_STATUS.BAD_REQUEST,
       );
     }
 
@@ -415,7 +451,7 @@ const forgotPassword = async (req, res, next) => {
         res,
         { message: 'If email exists, password reset link has been sent' },
         'Check your email for password reset link',
-        constants.HTTP_STATUS.OK
+        constants.HTTP_STATUS.OK,
       );
     }
 
@@ -430,7 +466,7 @@ const forgotPassword = async (req, res, next) => {
       await EmailService.sendPasswordResetEmail(
         user.email,
         user.name,
-        resetToken
+        resetToken,
       );
       logger.info('Password reset email sent', { userId: user._id });
     } catch (emailErr) {
@@ -445,7 +481,7 @@ const forgotPassword = async (req, res, next) => {
       res,
       { message: 'If email exists, password reset link has been sent' },
       'Check your email for password reset link',
-      constants.HTTP_STATUS.OK
+      constants.HTTP_STATUS.OK,
     );
   } catch (err) {
     logger.error('Forgot password error', { error: err.message });
@@ -472,7 +508,7 @@ const resetPassword = async (req, res, next) => {
         'Validation failed',
         constants.ERROR_CODES.VALIDATION_ERROR,
         details,
-        constants.HTTP_STATUS.BAD_REQUEST
+        constants.HTTP_STATUS.BAD_REQUEST,
       );
     }
 
@@ -487,7 +523,7 @@ const resetPassword = async (req, res, next) => {
         'Invalid or expired reset link',
         constants.ERROR_CODES.INVALID_TOKEN,
         null,
-        constants.HTTP_STATUS.BAD_REQUEST
+        constants.HTTP_STATUS.BAD_REQUEST,
       );
     }
 
@@ -506,7 +542,7 @@ const resetPassword = async (req, res, next) => {
       res,
       { message: 'Password reset successful. Please log in with new password.' },
       'Password updated successfully',
-      constants.HTTP_STATUS.OK
+      constants.HTTP_STATUS.OK,
     );
   } catch (err) {
     logger.error('Password reset error', { error: err.message });
@@ -534,7 +570,7 @@ const changePassword = async (req, res, next) => {
         'Validation failed',
         constants.ERROR_CODES.VALIDATION_ERROR,
         details,
-        constants.HTTP_STATUS.BAD_REQUEST
+        constants.HTTP_STATUS.BAD_REQUEST,
       );
     }
 
@@ -542,7 +578,7 @@ const changePassword = async (req, res, next) => {
 
     // Find user with password
     const user = await User.findByEmailWithPassword(
-      req.user?.email
+      req.user?.email,
     );
     if (!user) {
       return sendError(
@@ -550,14 +586,14 @@ const changePassword = async (req, res, next) => {
         'User not found',
         constants.ERROR_CODES.USER_NOT_FOUND,
         null,
-        constants.HTTP_STATUS.NOT_FOUND
+        constants.HTTP_STATUS.NOT_FOUND,
       );
     }
 
     // Verify current password
     const isValid = await AuthService.comparePassword(
       currentPassword,
-      user.password
+      user.password,
     );
     if (!isValid) {
       logger.warn('Change password: incorrect current password', { userId });
@@ -566,7 +602,7 @@ const changePassword = async (req, res, next) => {
         'Current password is incorrect',
         constants.ERROR_CODES.INVALID_CREDENTIALS,
         { field: 'currentPassword', message: 'Current password is incorrect' },
-        constants.HTTP_STATUS.UNAUTHORIZED
+        constants.HTTP_STATUS.UNAUTHORIZED,
       );
     }
 
@@ -581,7 +617,7 @@ const changePassword = async (req, res, next) => {
       res,
       { message: 'Password changed successfully' },
       'Password updated',
-      constants.HTTP_STATUS.OK
+      constants.HTTP_STATUS.OK,
     );
   } catch (err) {
     logger.error('Change password error', { error: err.message });

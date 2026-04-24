@@ -7,12 +7,12 @@ import api from './api'
 
 const userService = {
   /**
-   * Create a new user (registration)
-   * @param {Object} userData - User data (name, email, password, role, phone)
+   * Create a new invited user profile (admin only)
+   * @param {Object} userData - User data (name, email, role, phone, profile fields)
    */
   createUser: async (userData) => {
     try {
-      const response = await api.post('/auth/register', userData)
+      const response = await api.post('/users/admin/invite', userData)
       return response.data
     } catch (error) {
       throw error.response?.data || { message: 'Failed to create user' }

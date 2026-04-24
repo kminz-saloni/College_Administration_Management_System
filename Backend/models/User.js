@@ -42,8 +42,10 @@ const userSchema = new mongoose.Schema(
     // Authentication Fields
     password: {
       type: String,
-      required: true,
       minlength: 8,
+      required() {
+        return this.status !== constants.USER_STATUSES.INVITE_PENDING;
+      },
       select: false, // Don't return password by default
     },
 
@@ -55,11 +57,31 @@ const userSchema = new mongoose.Schema(
       index: true,
     },
 
+    status: {
+      type: String,
+      enum: Object.values(constants.USER_STATUSES),
+      default: constants.USER_STATUSES.ACTIVE,
+      index: true,
+    },
+
     // Account Status
     isActive: {
       type: Boolean,
-      default: true,
+      default() {
+        return this.status === constants.USER_STATUSES.ACTIVE;
+      },
       index: true,
+    },
+
+    activatedAt: {
+      type: Date,
+      default: null,
+    },
+
+    invitedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
     },
 
     emailVerified: {
@@ -150,7 +172,7 @@ const userSchema = new mongoose.Schema(
   {
     timestamps: true,
     collection: 'users',
-  }
+  },
 );
 
 // ============================================
@@ -182,6 +204,18 @@ userSchema.index({ role: 1, subjects: 1 }, { sparse: true });
  */
 userSchema.methods.isAccountLocked = function () {
   return this.lockUntil && this.lockUntil > Date.now();
+};
+
+userSchema.methods.isPendingActivation = function () {
+  return this.status === constants.USER_STATUSES.INVITE_PENDING;
+};
+
+userSchema.methods.markActive = function () {
+  this.status = constants.USER_STATUSES.ACTIVE;
+  this.isActive = true;
+  this.activatedAt = new Date();
+  this.emailVerified = true;
+  return this;
 };
 
 /**
@@ -257,9 +291,9 @@ userSchema.methods.clearPasswordResetToken = async function () {
  */
 userSchema.methods.isValidPasswordResetToken = function (token) {
   return (
-    this.passwordResetToken === token &&
-    this.passwordResetExpiry &&
-    this.passwordResetExpiry > Date.now()
+    this.passwordResetToken === token
+    && this.passwordResetExpiry
+    && this.passwordResetExpiry > Date.now()
   );
 };
 
@@ -288,7 +322,20 @@ userSchema.methods.toJSON = function () {
  * @returns {Promise<User>}
  */
 userSchema.statics.findByEmailWithPassword = function (email) {
-  return this.findOne({ email: email.toLowerCase() }, { password: 1, name: 1, email: 1, role: 1, phone: 1, isActive: 1, loginAttempts: 1, lockUntil: 1 });
+  return this.findOne(
+    { email: email.toLowerCase() },
+    {
+      password: 1,
+      name: 1,
+      email: 1,
+      role: 1,
+      phone: 1,
+      status: 1,
+      isActive: 1,
+      loginAttempts: 1,
+      lockUntil: 1,
+    },
+  );
 };
 
 /**
@@ -342,7 +389,7 @@ userSchema.statics.findByPasswordResetToken = function (token) {
 userSchema.statics.findByRoleWithPagination = async function (
   role,
   page = 1,
-  limit = 10
+  limit = 10,
 ) {
   const skip = (page - 1) * limit;
   const [users, total] = await Promise.all([

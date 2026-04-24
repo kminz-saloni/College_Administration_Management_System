@@ -4,7 +4,6 @@
  */
 
 const request = require('supertest');
-const mongoose = require('mongoose');
 const { app } = require('./setup');
 const User = require('../models/User');
 const AuthService = require('../services/authService');
@@ -21,7 +20,7 @@ describe('Authentication Module Tests', () => {
     password: 'TestPass123!',
     confirmPassword: 'TestPass123!',
     role: 'student',
-    phone: '1234567890'
+    phone: '1234567890',
   };
 
   beforeEach(async () => {
@@ -31,7 +30,7 @@ describe('Authentication Module Tests', () => {
       email: testUserData.email,
       password: await AuthService.hashPassword(testUserData.password),
       role: testUserData.role,
-      phone: testUserData.phone
+      phone: testUserData.phone,
     });
 
     // Generate tokens for each test
@@ -60,17 +59,18 @@ describe('Authentication Module Tests', () => {
     test('should reject invalid JWT token', async () => {
       try {
         await AuthService.verifyAccessToken('invalid-token');
-        fail('Should have thrown an error');
+        throw new Error('Should have thrown an error');
       } catch (error) {
         expect(error.message).toContain('Invalid');
       }
     });
 
     test('should reject expired JWT token', async () => {
-      // For this test, we'll just test with an invalid token since creating expired tokens is complex
+      // For this test, we'll just test with an invalid token since creating
+      // expired tokens is complex.
       try {
         await AuthService.verifyAccessToken('invalid-token');
-        fail('Should have thrown an error');
+        throw new Error('Should have thrown an error');
       } catch (error) {
         expect(error.message).toContain('Invalid');
       }
@@ -124,7 +124,7 @@ describe('Authentication Module Tests', () => {
     test('should reject invalid password reset token', async () => {
       try {
         await AuthService.verifyPasswordResetToken('invalid-reset-token');
-        fail('Should have thrown an error');
+        throw new Error('Should have thrown an error');
       } catch (error) {
         expect(error).toBeDefined();
       }
@@ -155,70 +155,66 @@ describe('Authentication Module Tests', () => {
   });
 
   describe('End-to-End Auth Flow', () => {
-    test('should reject teacher registration with non-fot domain email', async () => {
-      const invalidTeacherData = {
-        name: 'Teacher Outside Domain',
-        email: 'teacher@gmail.com',
-        password: 'TeacherPass123!',
-        confirmPassword: 'TeacherPass123!',
-        role: 'teacher',
-        phone: '1234567898'
-      };
-
+    test('should reject activation for unknown email', async () => {
       const response = await request(app)
         .post('/api/auth/register')
-        .send(invalidTeacherData);
+        .send({
+          email: 'unknown-invite@example.com',
+          password: 'InvitePass123!',
+          confirmPassword: 'InvitePass123!',
+        });
 
-      expect(response.status).toBe(400);
+      expect(response.status).toBe(404);
       expect(response.body.success).toBe(false);
-      expect(response.body.message).toContain('Validation failed');
+      expect(response.body.message).toContain('No pending invitation');
     });
 
-    test('should block public registration for admin role', async () => {
-      const adminSignupData = {
-        name: 'Blocked Admin',
-        email: 'blocked-admin@example.com',
-        password: 'AdminPass123!',
-        confirmPassword: 'AdminPass123!',
-        role: 'admin',
-        phone: '1234567899'
-      };
-
+    test('should block activation for an already active account', async () => {
       const response = await request(app)
         .post('/api/auth/register')
-        .send(adminSignupData);
+        .send({
+          email: testUserData.email,
+          password: 'InvitePass123!',
+          confirmPassword: 'InvitePass123!',
+        });
 
-      expect(response.status).toBe(400);
+      expect(response.status).toBe(409);
       expect(response.body.success).toBe(false);
-      expect(response.body.message).toContain('Validation failed');
+      expect(response.body.message).toContain('already active');
     });
 
     test('complete registration and login flow', async () => {
-      // Use different test data to avoid conflict with beforeEach user
-      const newUserData = {
-        name: 'New Test User',
-        email: 'newtest@example.com',
-        password: 'NewTestPass123!',
-        confirmPassword: 'NewTestPass123!',
-        role: 'student',
-        phone: '1234567891'
-      };
+      const inviteEmail = 'newtest@example.com';
 
-      // Register user
+      await User.create({
+        name: 'New Test User',
+        email: inviteEmail,
+        role: 'student',
+        phone: '1234567891',
+        status: 'invite_pending',
+        isActive: false,
+        emailVerified: false,
+      });
+
       const registerResponse = await request(app)
         .post('/api/auth/register')
-        .send(newUserData);
+        .send({
+          email: inviteEmail,
+          password: 'NewTestPass123!',
+          confirmPassword: 'NewTestPass123!',
+        });
 
       expect(registerResponse.status).toBe(201);
       expect(registerResponse.body.success).toBe(true);
       expect(registerResponse.body.data).toHaveProperty('userId');
+      expect(registerResponse.body.data).toHaveProperty('accessToken');
 
       // Login user
       const loginResponse = await request(app)
         .post('/api/auth/login')
         .send({
-          email: newUserData.email,
-          password: newUserData.password
+          email: inviteEmail,
+          password: 'NewTestPass123!',
         });
 
       expect(loginResponse.status).toBe(200);
@@ -235,7 +231,57 @@ describe('Authentication Module Tests', () => {
 
       expect(verifyResponse.status).toBe(200);
       expect(verifyResponse.body.success).toBe(true);
-      expect(verifyResponse.body.data.user.email).toBe(newUserData.email);
+      expect(verifyResponse.body.data.user.email).toBe(inviteEmail);
+    });
+
+    test('should reject weak password during activation', async () => {
+      const inviteEmail = 'weakpass@example.com';
+
+      await User.create({
+        name: 'Weak Pass User',
+        email: inviteEmail,
+        role: 'student',
+        phone: '1234567892',
+        status: 'invite_pending',
+        isActive: false,
+      });
+
+      const response = await request(app)
+        .post('/api/auth/register')
+        .send({
+          email: inviteEmail,
+          password: 'weak',
+          confirmPassword: 'weak',
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body.success).toBe(false);
+      expect(response.body.message).toContain('Validation failed');
+    });
+
+    test('should reject password mismatch during activation', async () => {
+      const inviteEmail = 'mismatch@example.com';
+
+      await User.create({
+        name: 'Mismatch User',
+        email: inviteEmail,
+        role: 'teacher',
+        phone: '1234567893',
+        status: 'invite_pending',
+        isActive: false,
+      });
+
+      const response = await request(app)
+        .post('/api/auth/register')
+        .send({
+          email: inviteEmail,
+          password: 'MismatchPass123!',
+          confirmPassword: 'DifferentPass123!',
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body.success).toBe(false);
+      expect(response.body.message).toContain('Validation failed');
     });
 
     test('should handle invalid login credentials', async () => {
@@ -243,7 +289,7 @@ describe('Authentication Module Tests', () => {
         .post('/api/auth/login')
         .send({
           email: 'nonexistent@example.com',
-          password: 'wrongpassword'
+          password: 'wrongpassword',
         });
 
       expect(response.status).toBe(401);

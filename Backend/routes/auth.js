@@ -5,7 +5,7 @@
 
 const express = require('express');
 const authController = require('../controllers/authController');
-const { authMiddleware, optionalAuthMiddleware } = require('../middleware/auth');
+const { authMiddleware } = require('../middleware/auth');
 const logger = require('../utils/logger');
 
 const router = express.Router();
@@ -16,16 +16,15 @@ const router = express.Router();
 
 /**
  * POST /auth/register
- * Register a new user
- * @body {string} name - User name (required)
- * @body {string} email - User email (required, unique)
- * @body {string} password - User password (required, min 8 chars, uppercase, number, special char)
- * @body {string} confirmPassword - Confirm password (required, must match)
- * @body {string} role - User role: admin|teacher|student (required)
- * @body {string} phone - User phone (optional, 10 digits)
- * @returns {Object} - {success, data: {userId, email, name, role}, message}
+ * Activate an invited account (legacy route kept for compatibility)
  */
 router.post('/register', authController.register);
+
+/**
+ * POST /auth/activate
+ * Activate an invited account
+ */
+router.post('/activate', authController.register);
 
 /**
  * POST /auth/login

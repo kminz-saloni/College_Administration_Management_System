@@ -42,13 +42,34 @@ import {
   CheckCircle,
 } from 'lucide-react'
 
+const ChartTooltip = ({ active, payload, label }) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-surface-1 border border-border-app p-3 rounded-lg shadow-dropdown animate-scale-in">
+        <p className="text-xs font-bold text-text-primary mb-2">{label}</p>
+        {payload.map((entry, index) => (
+          <div key={index} className="flex items-center gap-2 mb-1 last:mb-0">
+            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
+            <p className="text-xs text-text-muted">
+              <span className="capitalize">{entry.name}:</span>
+              <span className="ml-2 font-medium text-text-secondary">{entry.value}</span>
+            </p>
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  return null
+}
+
 const ReportsAnalyticsView = ({ onGenerateReport, userRole }) => {
   const [reportType, setReportType] = useState('video')
   const [reportPeriod, setReportPeriod] = useState('last30days')
 
   const { reports = [] } = useSelector((state) => state.dashboard || {})
   const analytics = useSelector((state) => state.analytics || {})
-  
+
   const {
     summary = {},
     trendData = [],
@@ -99,7 +120,7 @@ const ReportsAnalyticsView = ({ onGenerateReport, userRole }) => {
 
   const topVideos = Array.isArray(videos) ? videos.slice(0, 5) : []
   const classAttendance = Array.isArray(attendanceByClass) ? attendanceByClass.slice(0, 6) : []
-  
+
   // Custom theme colors for charts
   const CHART_COLORS = {
     primary: '#2563EB',
@@ -130,26 +151,6 @@ const ReportsAnalyticsView = ({ onGenerateReport, userRole }) => {
     if (value >= 20) return 'bg-primary/40 text-text-primary'
     if (value >= 10) return 'bg-primary/20 text-text-secondary'
     return 'bg-surface-3 text-text-muted'
-  }
-
-  const CustomTooltip = ({ active, payload, label }) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-surface-1 border border-border-app p-3 rounded-lg shadow-dropdown animate-scale-in">
-          <p className="text-xs font-bold text-text-primary mb-2">{label}</p>
-          {payload.map((entry, index) => (
-            <div key={index} className="flex items-center gap-2 mb-1 last:mb-0">
-              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
-              <p className="text-xs text-text-muted">
-                <span className="capitalize">{entry.name}:</span>
-                <span className="ml-2 font-medium text-text-secondary">{entry.value}</span>
-              </p>
-            </div>
-          ))}
-        </div>
-      )
-    }
-    return null
   }
 
   return (
@@ -210,7 +211,7 @@ const ReportsAnalyticsView = ({ onGenerateReport, userRole }) => {
                 <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.border} vertical={false} />
                 <XAxis dataKey="period" stroke={CHART_COLORS.text} fontSize={10} tickLine={false} axisLine={false} />
                 <YAxis stroke={CHART_COLORS.text} fontSize={10} tickLine={false} axisLine={false} />
-                <Tooltip content={<CustomTooltip />} />
+                <Tooltip content={<ChartTooltip />} />
                 <Area type="monotone" dataKey="views" stroke={CHART_COLORS.primary} strokeWidth={2} fillOpacity={1} fill="url(#colorViews)" name="Views" />
               </AreaChart>
             </ResponsiveContainer>
@@ -229,7 +230,7 @@ const ReportsAnalyticsView = ({ onGenerateReport, userRole }) => {
                 <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.border} horizontal={false} />
                 <XAxis type="number" hide />
                 <YAxis type="category" dataKey="title" width={100} stroke={CHART_COLORS.text} fontSize={10} tickLine={false} axisLine={false} />
-                <Tooltip content={<CustomTooltip />} />
+                <Tooltip content={<ChartTooltip />} />
                 <Bar dataKey="views" fill={CHART_COLORS.accent} radius={[0, 4, 4, 0]} barSize={20} name="Total Views" />
               </BarChart>
             </ResponsiveContainer>
@@ -259,7 +260,7 @@ const ReportsAnalyticsView = ({ onGenerateReport, userRole }) => {
                     <Cell key={`cell-${index}`} fill={pieColors[index % pieColors.length]} stroke="transparent" />
                   ))}
                 </Pie>
-                <Tooltip content={<CustomTooltip />} />
+                <Tooltip content={<ChartTooltip />} />
                 <Legend iconType="circle" wrapperStyle={{ fontSize: '10px', paddingTop: '20px' }} />
               </PieChart>
             </ResponsiveContainer>

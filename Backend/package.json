@@ -7,6 +7,7 @@
     "start": "node server.js",
     "dev": "nodemon server.js",
     "seed:users": "node seed_users.js",
+    "db:reset-classes": "node scripts/resetClassData.js",
     "test": "NODE_ENV=test jest --setupFilesAfterEnv ./tests/setup.js --coverage",
     "test:watch": "jest --setupFilesAfterEnv ./tests/setup.js --watch",
     "lint": "eslint .",

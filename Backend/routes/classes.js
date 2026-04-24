@@ -8,7 +8,6 @@ const express = require('express');
 const classesController = require('../controllers/classesController');
 const { authMiddleware } = require('../middleware/auth');
 const { roleGuard } = require('../middleware/roleGuard');
-const logger = require('../utils/logger');
 
 const router = express.Router();
 

@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react'
+import { useCallback, useEffect, useState, useRef } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -17,6 +17,25 @@ const NotificationBell = () => {
   const dropdownRef = useRef(null)
   const wsRef = useRef(null)
 
+  const fetchNotifications = useCallback(async () => {
+    try {
+      const response = await notificationService.fetchNotifications({ limit: 10 })
+      dispatch(setNotifications(response.data || response))
+    } catch (error) {
+      console.error('Failed to fetch notifications:', error)
+    }
+  }, [dispatch])
+
+  const setupWebSocket = useCallback(() => {
+    const userId = localStorage.getItem('userId') // Get from auth state
+    if (!userId) return
+
+    const ws = notificationService.setupWebSocket(userId, (notification) => {
+      dispatch(addNotification(notification))
+    })
+    wsRef.current = ws
+  }, [dispatch])
+
   // Initialize notifications on mount
   useEffect(() => {
     const initialize = async () => {
@@ -31,27 +50,7 @@ const NotificationBell = () => {
         wsRef.current.close()
       }
     }
-  }, [dispatch])
-
-  const fetchNotifications = async () => {
-    try {
-      const response = await notificationService.fetchNotifications({ limit: 10 })
-      dispatch(setNotifications(response.data || response))
-    } catch (error) {
-      console.error('Failed to fetch notifications:', error)
-    }
-  }
-
-  // Setup WebSocket for real-time notifications
-  const setupWebSocket = () => {
-    const userId = localStorage.getItem('userId') // Get from auth state
-    if (!userId) return
-
-    const ws = notificationService.setupWebSocket(userId, (notification) => {
-      dispatch(addNotification(notification))
-    })
-    wsRef.current = ws
-  }
+  }, [fetchNotifications, setupWebSocket])
 
   // Close dropdown when clicking outside
   useEffect(() => {
